@@ -168,11 +168,40 @@ const startServer = async () => {
       }
     }
 
-    // Connect to MongoDB
-    await connectDB();
+    // Connect to MongoDB (optional in development mode)
+    const dbConnection = await connectDB();
+    
+    if (!dbConnection && process.env.NODE_ENV === 'production') {
+      console.error('❌ MongoDB connection is required in production mode');
+      process.exit(1);
+    }
+    
+    // Setup MongoDB reconnection in development mode
+    if (!dbConnection && process.env.NODE_ENV !== 'production') {
+      console.warn('⚠️  Running in development mode without MongoDB');
+      console.warn('⚠️  API endpoints will return errors until MongoDB is connected');
+      console.warn('⚠️  Server will automatically reconnect when MongoDB becomes available\n');
+      
+      // Try to reconnect every 10 seconds
+      const reconnectInterval = setInterval(async () => {
+        try {
+          const { connectDB } = require('./lib/mongodb');
+          const connection = await connectDB();
+          if (connection) {
+            clearInterval(reconnectInterval);
+            console.log('✅ MongoDB connected! API is now fully functional.');
+          }
+        } catch (error) {
+          // Silently retry
+        }
+      }, 10000);
+    }
     
     const server = app.listen(PORT, () => {
       console.log(`🚀 API Server running on http://localhost:${PORT}`);
+      if (!dbConnection) {
+        console.log(`⚠️  Note: MongoDB is not connected. Some features may not work.`);
+      }
     });
 
     // Обработка ошибок при запуске сервера

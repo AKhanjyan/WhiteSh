@@ -75,11 +75,35 @@ export function TopCategories() {
       console.log('📦 [TopCategories] Fetching categories...');
       
       const language = getStoredLanguage();
+      console.log('📦 [TopCategories] Language:', language);
+      
       const response = await apiClient.get<CategoriesResponse>('/api/v1/categories/tree', {
         params: { lang: language },
       });
 
-      const categoriesList = response.data || [];
+      console.log('📦 [TopCategories] Response received:', response);
+      
+      // Validate response structure
+      if (!response) {
+        console.error('❌ [TopCategories] Empty response received');
+        setTopCategories([]);
+        return;
+      }
+      
+      if (!response.data) {
+        console.warn('⚠️ [TopCategories] Response missing "data" field:', response);
+        setTopCategories([]);
+        return;
+      }
+      
+      if (!Array.isArray(response.data)) {
+        console.error('❌ [TopCategories] Response.data is not an array:', typeof response.data, response.data);
+        setTopCategories([]);
+        return;
+      }
+      
+      const categoriesList = response.data;
+      console.log('📦 [TopCategories] Categories list:', categoriesList);
       // Get all categories including children (flatten the tree)
       const allCategories = flattenAllCategories(categoriesList);
       
@@ -131,6 +155,15 @@ export function TopCategories() {
       console.log('✅ [TopCategories] Top 5 categories selected:', sortedCategories.map(c => `${c.category.title} (${c.productCount} products)`));
     } catch (err: any) {
       console.error('❌ [TopCategories] Error fetching categories:', err);
+      console.error('❌ [TopCategories] Error details:', {
+        message: err?.message,
+        status: err?.status,
+        statusText: err?.statusText,
+        data: err?.data,
+        stack: err?.stack,
+      });
+      // Set empty array to prevent infinite loading
+      setTopCategories([]);
     } finally {
       setLoading(false);
     }

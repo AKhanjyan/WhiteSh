@@ -30,6 +30,8 @@ const connectDB = async (retries = 5, delay = 3000) => {
   const portAvailable = await checkMongoDBPort(host, port);
   
   if (!portAvailable) {
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    
     console.error(`\n❌ MongoDB is not accessible at ${host}:${port}`);
     console.error(`\n💡 MongoDB server is not running. Please start MongoDB:`);
     console.error(`\n   Windows:`);
@@ -40,8 +42,16 @@ const connectDB = async (retries = 5, delay = 3000) => {
     console.error(`   1. sudo systemctl start mongod`);
     console.error(`   2. Or: mongod --dbpath /data/db`);
     console.error(`   3. Or use Docker: docker run -d -p 27017:27017 --name mongodb mongo:latest`);
-    console.error(`\n   After starting MongoDB, restart this server.\n`);
-    throw new Error(`MongoDB server is not running at ${host}:${port}`);
+    
+    if (isDevelopment) {
+      console.error(`\n⚠️  DEVELOPMENT MODE: Server will start but API endpoints will not work without MongoDB.`);
+      console.error(`   After starting MongoDB, the server will automatically reconnect.\n`);
+      // В режиме разработки не бросаем ошибку, чтобы сервер мог запуститься
+      return null;
+    } else {
+      console.error(`\n   After starting MongoDB, restart this server.\n`);
+      throw new Error(`MongoDB server is not running at ${host}:${port}`);
+    }
   }
   
   console.log(`✅ MongoDB port ${host}:${port} is accessible`);

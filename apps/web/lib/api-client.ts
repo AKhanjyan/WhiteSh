@@ -148,12 +148,41 @@ class ApiClient {
     const maxRetries = 3;
     const retryDelay = 1000; // 1 second
     
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: this.getHeaders(options),
-      cache: 'no-store', // Disable caching for server components
-      ...options,
-    });
+    console.log('🌐 [API CLIENT] GET request:', { url, endpoint, baseUrl: this.baseUrl });
+    
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: 'GET',
+        headers: this.getHeaders(options),
+        cache: 'no-store', // Disable caching for server components
+        ...options,
+      });
+      console.log('🌐 [API CLIENT] GET response status:', response.status, response.statusText);
+    } catch (networkError: any) {
+      console.error('❌ [API CLIENT] Network error during fetch:', networkError);
+      
+      // Проверяем, является ли это ошибкой подключения
+      const isConnectionRefused = networkError.message?.includes('Failed to fetch') || 
+                                  networkError.message?.includes('ERR_CONNECTION_REFUSED') ||
+                                  networkError.message?.includes('NetworkError');
+      
+      if (isConnectionRefused) {
+        const errorMessage = `⚠️ API сервер недоступен!\n\n` +
+          `Не удалось подключиться к ${this.baseUrl}\n\n` +
+          `Решение:\n` +
+          `1. Убедитесь, что API сервер запущен\n` +
+          `2. Запустите сервер командой: npm run dev:api (из корня проекта)\n` +
+          `   или: cd apps/api && npm run dev\n` +
+          `3. Проверьте, что порт ${this.baseUrl.split(':').pop() || '3001'} не занят другим процессом\n\n` +
+          `URL запроса: ${url}`;
+        
+        console.error('❌ [API CLIENT]', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      throw new Error(`Network error: Unable to connect to API at ${url}. ${networkError.message || 'Please check if the API server is running.'}`);
+    }
 
     if (!response.ok) {
       // Retry on 429 (Too Many Requests) errors
@@ -167,6 +196,13 @@ class ApiClient {
       let errorText = '';
       let errorData: any = null;
       const isUnauthorized = response.status === 401;
+      
+      console.error(`❌ [API CLIENT] GET Error: ${response.status} ${response.statusText}`, {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+      });
       
       // Handle 401 Unauthorized - clear token and redirect
       if (isUnauthorized) {
@@ -206,10 +242,28 @@ class ApiClient {
     }
 
     try {
-      return await response.json();
-    } catch (parseError) {
+      const contentType = response.headers.get('content-type');
+      console.log('🌐 [API CLIENT] Response content-type:', contentType);
+      
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('❌ [API CLIENT] GET Non-JSON response:', {
+          contentType,
+          status: response.status,
+          text: text.substring(0, 200), // First 200 chars
+        });
+        throw new Error(`Expected JSON response but got ${contentType}. Status: ${response.status}`);
+      }
+      
+      const jsonData = await response.json();
+      console.log('✅ [API CLIENT] GET Response parsed successfully');
+      return jsonData;
+    } catch (parseError: any) {
       console.error('❌ [API CLIENT] GET JSON parse error:', parseError);
-      throw new Error(`Failed to parse response: ${parseError}`);
+      if (parseError.message && parseError.message.includes('Expected JSON')) {
+        throw parseError;
+      }
+      throw new Error(`Failed to parse response as JSON: ${parseError.message || String(parseError)}`);
     }
   }
 

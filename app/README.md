@@ -57,3 +57,4 @@ npm run db:seed
 - Երկու server-ները աշխատում են միաժամանակ `concurrently`-ի օգնությամբ
 - Console-ում կտեսնեք `[API]` և `[WEB]` prefix-ներով log-երը
 
+
