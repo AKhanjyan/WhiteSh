@@ -7,6 +7,7 @@ import { Button, Input, Card } from '@shop/ui';
 import { useAuth } from '../../lib/auth/AuthContext';
 import { apiClient } from '../../lib/api-client';
 import { formatPrice, getStoredCurrency } from '../../lib/currency';
+import { ProfileMenuDrawer } from '../../components/ProfileMenuDrawer';
 
 interface Address {
   _id?: string;
@@ -649,8 +650,16 @@ function ProfilePageContent() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
+        <div className="lg:hidden mb-6">
+          <ProfileMenuDrawer
+            tabs={tabs}
+            activeTab={activeTab}
+            onSelect={(tabId) => handleTabChange(tabId as typeof activeTab)}
+          />
+        </div>
+
         {/* Sidebar Navigation */}
-        <aside className="w-full lg:w-64 flex-shrink-0">
+        <aside className="hidden lg:block lg:w-64 flex-shrink-0">
           <nav className="bg-white border border-gray-200 rounded-lg p-2 space-y-1">
             {tabs.map((tab) => (
               <button

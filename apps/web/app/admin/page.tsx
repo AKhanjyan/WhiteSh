@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '../../lib/auth/AuthContext';
 import { Card, Button } from '@shop/ui';
 import { apiClient } from '../../lib/api-client';
+import { AdminMenuDrawer } from '../../components/AdminMenuDrawer';
 
 interface Stats {
   users: { total: number };
@@ -363,8 +364,11 @@ export default function AdminPanel() {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
+          <div className="lg:hidden mb-6">
+            <AdminMenuDrawer tabs={adminTabs} currentPath={currentPath} />
+          </div>
           {/* Sidebar Navigation */}
-          <aside className="w-full lg:w-64 flex-shrink-0">
+          <aside className="hidden lg:block lg:w-64 flex-shrink-0">
             <nav className="bg-white border border-gray-200 rounded-lg p-2 space-y-1">
               {adminTabs.map((tab) => {
                 const isActive = currentPath === tab.path || 
