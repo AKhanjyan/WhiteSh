@@ -1,227 +1,143 @@
-  // server.js (կարճացված և կարգավորված տարբերակ)
+// server.js — CLEAN & RENDER-READY VERSION
 
-  const path = require('path');
-  require('dotenv').config({ path: path.resolve(__dirname, '../../../.env') }); // project root .env
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../../../.env') });
 
-  const express = require('express');
-  const cors = require('cors');
-  const helmet = require('helmet');
-  const rateLimit = require('express-rate-limit');
-  const { connectDB } = require('./lib/mongodb');
-  const { checkAndFreePort } = require('./utils/portChecker');
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const { connectDB } = require('./lib/mongodb');
 
-  const app = express();
-  const PORT = process.env.PORT || 3001;
+const app = express();
+const PORT = process.env.PORT || 3001;
 
-  // Middleware
-  // Настройка helmet для работы с CORS
-  app.use(helmet({
+
+// -----------------------
+// Security Middleware
+// -----------------------
+app.use(
+  helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
     crossOriginEmbedderPolicy: false,
-  }));
+  })
+);
 
-  // CORS configuration
-  const corsOptions = {
-    credentials: true,
-    origin: (origin, callback) => {
-      // В режиме разработки разрешаем несколько origins
-      if (process.env.NODE_ENV === 'development') {
-        const allowedOrigins = [
-          'http://localhost:3000',
-          'http://localhost:3003',
-          'http://127.0.0.1:3000',
-          'http://127.0.0.1:3003',
-          // Разрешаем любые IP-адреса на портах 3000 и 3003 для локальной разработки
-          /^http:\/\/\d+\.\d+\.\d+\.\d+:(3000|3003)$/,
-          // Разрешаем любые localhost порты для гибкости в разработке
-          /^http:\/\/localhost:\d+$/,
-          /^http:\/\/127\.0\.0\.1:\d+$/,
-        ];
-        
-        // Если origin не указан (например, запросы из Postman), разрешаем
-        if (!origin) {
-          return callback(null, true);
-        }
-        
-        // Проверяем точное совпадение или регулярное выражение
-        const isAllowed = allowedOrigins.some(allowed => {
-          if (typeof allowed === 'string') {
-            return origin === allowed;
-          }
-          if (allowed instanceof RegExp) {
-            return allowed.test(origin);
-          }
-          return false;
-        });
-        
-        if (isAllowed) {
-          callback(null, true);
-        } else {
-          console.warn(`⚠️  CORS: Заблокирован origin: ${origin}`);
-          callback(new Error('Not allowed by CORS'));
-        }
-      } else {
-        // В production используем строгий контроль
-        const allowedOrigin = process.env.APP_URL || 'http://localhost:3000';
-        if (origin === allowedOrigin) {
-          callback(null, true);
-        } else {
-          callback(new Error('Not allowed by CORS'));
-        }
-      }
-    },
-  };
 
-  app.use(cors(corsOptions));
-  app.use(express.json({ limit: '10mb' }));
-  app.use(express.urlencoded({ extended: true }));
+// -----------------------
+// CORS CONFIG
+// -----------------------
+const corsOptions = {
+  credentials: true,
+  origin: (origin, callback) => {
+    // Allow internal calls without Origin (Render health checks)
+    if (!origin) return callback(null, true);
 
-  // Rate limiting - more lenient in development
-  const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: process.env.NODE_ENV === 'production' ? 100 : 1000, // 1000 requests in dev, 100 in production
-    message: 'Too many requests, try again later.',
+    const allowedOrigins = [
+      process.env.APP_URL,
+      'https://white-shop-1.onrender.com'
+    ];
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    console.warn('❌ CORS blocked:', origin);
+    return callback(new Error('Not allowed by CORS'));
+  },
+};
+
+app.use(cors(corsOptions));
+
+
+// -----------------------
+// Body Parsers
+// -----------------------
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+
+// -----------------------
+// Rate Limiting
+// -----------------------
+app.use(
+  '/api/',
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: process.env.NODE_ENV === 'production' ? 200 : 2000,
     standardHeaders: true,
     legacyHeaders: false,
+  })
+);
+
+
+// -----------------------
+// Health Check
+// -----------------------
+app.get('/health', async (req, res) => {
+  const mongoose = require('mongoose');
+  const dbState = mongoose.connection.readyState;
+
+  return res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    db: dbState === 1 ? 'connected' : 'disconnected',
   });
-  app.use('/api/', limiter);
+});
 
-  // Health check
-  app.get('/health', async (req, res) => {
-    const checks = {
-      timestamp: new Date().toISOString(),
-      status: 'ok',
-      services: {},
-    };
 
-    try {
-      const mongoose = require('mongoose');
-      if (mongoose.connection.readyState === 1) {
-        await mongoose.connection.db.admin().ping();
-        checks.services.database = 'ok';
-      } else {
-        checks.services.database = 'disconnected';
-        checks.status = 'degraded';
-      }
-    } catch (error) {
-      checks.services.database = `error: ${error.message}`;
-      checks.status = 'degraded';
-    }
+// -----------------------
+// BASE ROUTE
+// -----------------------
+app.get('/', (req, res) => {
+  res.send('API is running!');
+});
 
-    const statusCode = checks.status === 'ok' ? 200 : 503;
-    res.status(statusCode).json(checks);
+
+// -----------------------
+// ROUTES
+// -----------------------
+app.use('/api/v1/auth', require('./routes/auth'));
+app.use('/api/v1/products', require('./routes/products'));
+app.use('/api/v1/categories', require('./routes/categories'));
+app.use('/api/v1/cart', require('./routes/cart'));
+app.use('/api/v1/orders', require('./routes/orders'));
+app.use('/api/v1/users', require('./routes/users'));
+app.use('/api/v1/admin', require('./routes/admin'));
+
+
+// -----------------------
+// ERROR HANDLER
+// -----------------------
+app.use((err, req, res, next) => {
+  console.error('🔥 Error:', err.message);
+  res.status(500).json({
+    status: 500,
+    message: err.message,
   });
+});
 
-  // Example route
-  app.get('/', (req, res) => {
-    res.send('API is running!');
-  });
 
-  // Error handling
-  app.use((err, req, res, next) => {
-    console.error(err);
-    res.status(err.statusCode || 500).json({
-      status: err.statusCode || 500,
-      message: err.message || 'Internal Server Error',
-      detail: process.env.NODE_ENV === 'development' ? err.stack : undefined,
-    });
-  });
-
-  // Routes
-  const authRoutes = require('./routes/auth');
-  const productsRoutes = require('./routes/products');
-  const categoriesRoutes = require('./routes/categories');
-  const cartRoutes = require('./routes/cart');
-  const ordersRoutes = require('./routes/orders');
-  const usersRoutes = require('./routes/users');
-  const adminRoutes = require('./routes/admin');
-
-  app.use('/api/v1/auth', authRoutes);
-  app.use('/api/v1/products', productsRoutes);
-  app.use('/api/v1/categories', categoriesRoutes);
-  app.use('/api/v1/cart', cartRoutes);
-  app.use('/api/v1/orders', ordersRoutes);
-  app.use('/api/v1/users', usersRoutes);
-  app.use('/api/v1/admin', adminRoutes);
-
-  // Graceful shutdown
-  process.on('SIGTERM', async () => {
-    console.log('Shutting down...');
-    const mongoose = require('mongoose');
-    await mongoose.connection.close();
-    process.exit(0);
-  });
-
-  // Start server
-  const startServer = async () => {
-    try {
-      // Проверяем и освобождаем порт перед запуском (только в режиме разработки)
-      if (process.env.NODE_ENV !== 'production') {
-        const portFreed = await checkAndFreePort(PORT, true);
-        if (!portFreed) {
-          console.error(`\n❌ Не удалось освободить порт ${PORT}`);
-          console.error(`\n💡 Решение:`);
-          console.error(`   1. Найдите процесс вручную: netstat -ano | findstr :${PORT}`);
-          console.error(`   2. Остановите процесс: taskkill /PID <PID> /F`);
-          console.error(`   3. Или измените порт в .env файле: PORT=3002\n`);
-          process.exit(1);
-        }
-      }
-
-      // Connect to MongoDB (optional in development mode)
-      const dbConnection = await connectDB();
-      
-      // if (!dbConnection && process.env.NODE_ENV === 'production') {
-      //   console.error('❌ MongoDB connection is required in production mode');
-      //   process.exit(1);
-      // }
-      
-      // Setup MongoDB reconnection in development mode
-      if (!dbConnection && process.env.NODE_ENV !== 'production') {
-        console.warn('⚠️  Running in development mode without MongoDB');
-        console.warn('⚠️  API endpoints will return errors until MongoDB is connected');
-        console.warn('⚠️  Server will automatically reconnect when MongoDB becomes available\n');
-        
-        // Try to reconnect every 10 seconds
-        const reconnectInterval = setInterval(async () => {
-          try {
-            const { connectDB } = require('./lib/mongodb');
-            const connection = await connectDB();
-            if (connection) {
-              clearInterval(reconnectInterval);
-              console.log('✅ MongoDB connected! API is now fully functional.');
-            }
-          } catch (error) {
-            // Silently retry
-          }
-        }, 10000);
-      }
-      
-      const server = app.listen(PORT, () => {
-        console.log(`🚀 API Server running on http://localhost:${PORT}`);
-        if (!dbConnection) {
-          console.log(`⚠️  Note: MongoDB is not connected. Some features may not work.`);
-        }
-      });
-
-      // Обработка ошибок при запуске сервера
-      server.on('error', (error) => {
-        if (error.code === 'EADDRINUSE') {
-          console.error(`\n❌ Ошибка: Порт ${PORT} уже занят!`);
-          console.error(`\n💡 Решение:`);
-          console.error(`   1. Найдите процесс, использующий порт: netstat -ano | findstr :${PORT}`);
-          console.error(`   2. Остановите процесс: taskkill /PID <PID> /F`);
-          console.error(`   3. Или измените порт в .env файле: PORT=3002\n`);
-          process.exit(1);
-        } else {
-          console.error('❌ Ошибка при запуске сервера:', error);
-          process.exit(1);
-        }
-      });
-    } catch (error) {
-      console.error('❌ Failed to start server:', error);
+// -----------------------
+// START SERVER
+// -----------------------
+const startServer = async () => {
+  try {
+    // Connect to MongoDB (required in production)
+    const db = await connectDB();
+    if (!db && process.env.NODE_ENV === 'production') {
+      console.error('❌ MongoDB is required in production.');
       process.exit(1);
     }
-  };
 
-  startServer();
+    app.listen(PORT, () =>
+      console.log(`🚀 API running on port ${PORT} (Render-provided)`)
+    );
+
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
