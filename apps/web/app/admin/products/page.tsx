@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/auth/AuthContext';
 import { Card, Button } from '@shop/ui';
@@ -36,32 +37,6 @@ interface Category {
   slug: string;
   title: string;
   parentId: string | null;
-}
-
-interface ProductVariant {
-  id?: string;
-  sku?: string;
-  price?: number | string;
-  compareAtPrice?: number | string;
-  stock?: number | string;
-  imageUrl?: string;
-  published?: boolean;
-  color?: string;
-  size?: string;
-  // Для обратной совместимости, если варианты приходят с options
-  options?: Array<{
-    attributeKey?: string;
-    key?: string;
-    value?: string;
-  }>;
-}
-
-interface FullProduct {
-  id: string;
-  media?: string[];
-  variants?: ProductVariant[];
-  primaryCategoryId?: string | null;
-  [key: string]: any;
 }
 
 export default function ProductsPage() {
@@ -168,7 +143,7 @@ export default function ProductsPage() {
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = (e: FormEvent) => {
     e.preventDefault();
     setPage(1);
     fetchProducts();

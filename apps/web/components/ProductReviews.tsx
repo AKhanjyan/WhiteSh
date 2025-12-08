@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button, Input } from '@shop/ui';
+import type { FormEvent } from 'react';
+import { Button } from '@shop/ui';
 import { useAuth } from '../lib/auth/AuthContext';
 import { getStoredLanguage } from '../lib/language';
 import { getTranslation } from '../lib/translations';
@@ -56,7 +57,7 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
     if (!isLoggedIn) {
@@ -77,10 +78,14 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
     setSubmitting(true);
 
     try {
+      const userName = user?.firstName && user?.lastName
+        ? `${user.firstName} ${user.lastName}`
+        : user?.firstName || user?.lastName || user?.email || 'Anonymous';
+
       const newReview: Review = {
         id: Date.now().toString(),
         userId: user?.id || '',
-        userName: user?.name || user?.email || 'Anonymous',
+        userName,
         rating,
         comment: comment.trim(),
         createdAt: new Date().toISOString(),

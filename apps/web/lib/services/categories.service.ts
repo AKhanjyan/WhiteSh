@@ -27,9 +27,13 @@ class CategoriesService {
     const categoryMap = new Map();
     const rootCategories: any[] = [];
 
-    categories.forEach((category) => {
+    categories.forEach((category: {
+      id: string;
+      parentId: string | null;
+      translations: Array<{ locale: string; slug: string; title: string; fullPath: string }>;
+    }) => {
       const translation =
-        category.translations.find((t) => t.locale === lang) ||
+        category.translations.find((t: { locale: string }) => t.locale === lang) ||
         category.translations[0];
       if (!translation) return;
 
@@ -49,7 +53,10 @@ class CategoriesService {
     });
 
     // Build parent-child relationships
-    categories.forEach((category) => {
+    categories.forEach((category: {
+      id: string;
+      parentId: string | null;
+    }) => {
       if (category.parentId) {
         const parent = categoryMap.get(category.parentId);
         const child = categoryMap.get(category.id);
@@ -99,10 +106,10 @@ class CategoriesService {
     }
 
     const translation =
-      category.translations.find((t) => t.locale === lang) ||
+      category.translations.find((t: { locale: string }) => t.locale === lang) ||
       category.translations[0];
     const parentTranslation = category.parent
-      ? category.parent.translations.find((t) => t.locale === lang) ||
+      ? category.parent.translations.find((t: { locale: string }) => t.locale === lang) ||
         category.parent.translations[0]
       : null;
 

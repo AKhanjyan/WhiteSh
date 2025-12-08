@@ -4,10 +4,11 @@ import { ordersService } from "@/lib/services/orders.service";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { number: string } }
+  { params }: { params: Promise<{ number: string }> }
 ) {
+  let user: { id: string } | null = null;
   try {
-    const user = await authenticateToken(req);
+    user = await authenticateToken(req);
     if (!user) {
       return NextResponse.json(
         {
@@ -21,11 +22,13 @@ export async function GET(
       );
     }
 
-    const result = await ordersService.findByNumber(params.number, user.id);
+    const { number } = await params;
+    const result = await ordersService.findByNumber(number, user.id);
     return NextResponse.json(result);
   } catch (error: any) {
+    const { number } = await params;
     console.error("❌ [ORDERS] Get order by number error:", {
-      orderNumber: params.number,
+      orderNumber: number,
       userId: user?.id,
       message: error?.message,
       stack: error?.stack,

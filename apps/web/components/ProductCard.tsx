@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
+import type { MouseEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatPrice, getStoredCurrency } from '../lib/currency';
 import { apiClient } from '../lib/api-client';
@@ -29,7 +30,7 @@ interface Product {
     name: string;
   } | null;
   labels?: ProductLabel[];
-  compareAtPrice?: number;
+  compareAtPrice?: number | null;
   originalPrice?: number | null;
   globalDiscount?: number | null;
   discountPercent?: number | null;
@@ -138,7 +139,7 @@ export function ProductCard({ product, viewMode = 'grid-3' }: ProductCardProps) 
   }, []);
 
   // Добавление/удаление из wishlist
-  const handleWishlistToggle = (e: React.MouseEvent) => {
+  const handleWishlistToggle = (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -171,7 +172,7 @@ export function ProductCard({ product, viewMode = 'grid-3' }: ProductCardProps) 
   };
 
   // Добавление/удаление из compare
-  const handleCompareToggle = (e: React.MouseEvent) => {
+  const handleCompareToggle = (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -207,7 +208,7 @@ export function ProductCard({ product, viewMode = 'grid-3' }: ProductCardProps) 
   };
 
   // Добавление в корзину
-  const handleAddToCart = async (e: React.MouseEvent) => {
+  const handleAddToCart = async (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     

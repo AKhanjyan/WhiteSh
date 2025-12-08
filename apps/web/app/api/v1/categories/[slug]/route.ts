@@ -3,12 +3,13 @@ import { categoriesService } from "@/lib/services/categories.service";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     const { searchParams } = new URL(req.url);
     const lang = searchParams.get("lang") || "en";
-    const result = await categoriesService.findBySlug(params.slug, lang);
+    const { slug } = await params;
+    const result = await categoriesService.findBySlug(slug, lang);
     return NextResponse.json(result);
   } catch (error: any) {
     console.error("❌ [CATEGORIES] Error:", error);

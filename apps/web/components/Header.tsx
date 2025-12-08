@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useRef, Suspense } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import { getStoredCurrency, setStoredCurrency, type CurrencyCode, CURRENCIES, formatPrice } from '../lib/currency';
 import { getStoredLanguage, setStoredLanguage } from '../lib/language';
 import { useAuth } from '../lib/auth/AuthContext';
@@ -75,7 +76,7 @@ const SearchIcon = () => (
 );
 
 interface BadgeIconProps {
-  icon: React.ReactNode;
+  icon: ReactNode;
   badge?: number;
   className?: string;
   iconClassName?: string;
@@ -113,8 +114,8 @@ function HeaderSearchSync({
   setSelectedCategory,
   categories,
 }: {
-  setSearchQuery: (query: string) => void;
-  setSelectedCategory: (category: Category | null) => void;
+  setSearchQuery: (_query: string) => void;
+  setSelectedCategory: (_category: Category | null) => void;
   categories: Category[];
 }) {
   const searchParams = useSearchParams();
@@ -149,7 +150,7 @@ function HeaderSearchSync({
 
 export function Header() {
   const router = useRouter();
-  const { isLoggedIn, user, logout, isAdmin } = useAuth();
+  const { isLoggedIn, logout, isAdmin } = useAuth();
   const [compareCount, setCompareCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
   const [cartCount, setCartCount] = useState(0);
@@ -163,7 +164,7 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState<CurrencyCode>('USD');
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [, setSelectedCategory] = useState<Category | null>(null);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const currentYear = new Date().getFullYear();
 
@@ -171,7 +172,7 @@ export function Header() {
   const mobileCurrencyRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const productsMenuRef = useRef<HTMLDivElement>(null);
-  const productsMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const productsMenuTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchModalRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -495,7 +496,7 @@ export function Header() {
     };
   }, [showSearchModal, mobileMenuOpen]);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = (e: FormEvent) => {
     e.preventDefault();
     const query = searchQuery.trim();
     const params = new URLSearchParams();

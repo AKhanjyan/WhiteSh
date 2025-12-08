@@ -18,7 +18,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { searchParams } = new URL(req.url);
     const filters = {};
     const result = await adminService.getUsers(filters);
     return NextResponse.json(result);

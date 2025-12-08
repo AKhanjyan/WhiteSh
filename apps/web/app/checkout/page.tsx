@@ -47,10 +47,10 @@ const checkoutSchema = z.object({
   email: z.string().email('Invalid email address').min(1, 'Email is required'),
   phone: z.string().min(1, 'Phone is required').regex(/^\+?[0-9]{8,15}$/, 'Invalid phone number'),
   shippingMethod: z.enum(['pickup', 'delivery'], {
-    required_error: 'Please select a shipping method',
+    message: 'Please select a shipping method',
   }),
   paymentMethod: z.enum(['idram', 'arca'], {
-    required_error: 'Please select a payment method',
+    message: 'Please select a payment method',
   }),
   // Shipping address fields - required only for delivery
   shippingAddress: z.string().optional(),
@@ -170,6 +170,8 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currency, setCurrency] = useState(getStoredCurrency());
+  // Language state - used in handleLanguageUpdate function (setLanguage)
+  // eslint-disable-next-line no-unused-vars
   const [language, setLanguage] = useState(getStoredLanguage());
   const [logoErrors, setLogoErrors] = useState<Record<string, boolean>>({});
   const [showShippingModal, setShowShippingModal] = useState(false);

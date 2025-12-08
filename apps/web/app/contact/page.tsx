@@ -2,6 +2,7 @@
 
 import { Button, Input } from '@shop/ui';
 import { useState, useEffect } from 'react';
+import type { FormEvent, ChangeEvent } from 'react';
 import { getStoredLanguage } from '@/lib/language';
 import contactData from '../../../../config/contact.json';
 
@@ -45,14 +46,14 @@ export default function ContactPage() {
     }
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     // Handle form submission here
     console.log('Form submitted:', formData);
     // You can add API call here
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -60,7 +61,6 @@ export default function ContactPage() {
   };
 
   const address = contactData.address[language] || contactData.address.en;
-  const workingHours = contactData.workingHours[language] || contactData.workingHours.en;
 
   return (
     <div className="bg-white">

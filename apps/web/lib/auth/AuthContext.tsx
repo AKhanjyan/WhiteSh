@@ -26,8 +26,8 @@ interface AuthContextType {
   isLoading: boolean;
   isAdmin: boolean;
   roles: string[];
-  login: (emailOrPhone: string, password: string) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
+  login: (_emailOrPhone: string, _password: string) => Promise<void>;
+  register: (_data: RegisterData) => Promise<void>;
   logout: () => void;
 }
 
@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * Login user
    */
   const login = async (emailOrPhone: string, password: string) => {
-    console.log('🔐 [AUTH] Login attempt:', { emailOrPhone: emailOrPhone ? 'provided' : 'not provided' });
+    console.log('🔐 [AUTH] Login attempt:', { emailOrPhone: emailOrPhone ? 'provided' : 'not provided', password: password ? 'provided' : 'not provided' });
     
     try {
       setIsLoading(true);

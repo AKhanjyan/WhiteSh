@@ -18,7 +18,6 @@ interface Product {
 }
 
 type ViewMode = 'list' | 'grid-2' | 'grid-3';
-type SortOption = 'default' | 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc';
 
 interface ProductsGridProps {
   products: Product[];
@@ -39,13 +38,13 @@ export function ProductsGrid({ products, sortBy = 'default' }: ProductsGridProps
 
   // Listen for view mode changes
   useEffect(() => {
-    const handleViewModeChange = (event: CustomEvent) => {
-      setViewMode(event.detail);
+    const handleViewModeChange = (_event: CustomEvent) => {
+      setViewMode((_event as CustomEvent).detail);
     };
 
-    window.addEventListener('view-mode-changed', handleViewModeChange as EventListener);
+    window.addEventListener('view-mode-changed', handleViewModeChange as (_event: Event) => void);
     return () => {
-      window.removeEventListener('view-mode-changed', handleViewModeChange as EventListener);
+      window.removeEventListener('view-mode-changed', handleViewModeChange as (_event: Event) => void);
     };
   }, []);
 
@@ -99,7 +98,14 @@ export function ProductsGrid({ products, sortBy = 'default' }: ProductsGridProps
   return (
     <div className={getGridClasses()}>
       {sortedProducts.map((product) => (
-        <ProductCard key={product.id} product={product} viewMode={viewMode} />
+        <ProductCard 
+          key={product.id} 
+          product={{
+            ...product,
+            compareAtPrice: product.compareAtPrice ?? undefined
+          }} 
+          viewMode={viewMode} 
+        />
       ))}
     </div>
   );

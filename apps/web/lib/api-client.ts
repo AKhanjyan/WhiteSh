@@ -11,7 +11,7 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const AUTH_TOKEN_KEY = 'auth_token';
 
-interface RequestOptions extends RequestInit {
+interface RequestOptions extends globalThis.RequestInit {
   params?: Record<string, string>;
   skipAuth?: boolean; // Skip automatic token injection
 }
@@ -143,7 +143,7 @@ class ApiClient {
   /**
    * Get headers with automatic token injection
    */
-  private getHeaders(options?: RequestOptions): HeadersInit {
+  private getHeaders(options?: RequestOptions): globalThis.HeadersInit {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(options?.headers as Record<string, string> || {}),
@@ -157,7 +157,7 @@ class ApiClient {
       }
     }
 
-    return headers as HeadersInit;
+    return headers as globalThis.HeadersInit;
   }
 
   /**

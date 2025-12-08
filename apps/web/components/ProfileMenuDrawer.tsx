@@ -12,7 +12,7 @@ export interface ProfileMenuItem {
 interface ProfileMenuDrawerProps {
   tabs: ProfileMenuItem[];
   activeTab: string;
-  onSelect: (tabId: string) => void;
+  onSelect: (_tabId: string) => void;
 }
 
 /**

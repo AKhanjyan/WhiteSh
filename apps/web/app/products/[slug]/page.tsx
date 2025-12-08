@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, use, useCallback } from 'react';
+import type { MouseEvent } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '../../../lib/api-client';
@@ -84,6 +85,8 @@ export default function ProductPage({ params }: ProductPageProps) {
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currency, setCurrency] = useState(getStoredCurrency());
+  // Language state - used in handleLanguageUpdate function (setLanguage)
+  // eslint-disable-next-line no-unused-vars
   const [language, setLanguage] = useState(getStoredLanguage());
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -493,7 +496,7 @@ export default function ProductPage({ params }: ProductPageProps) {
   };
 
   // Handle add to wishlist
-  const handleAddToWishlist = (e: React.MouseEvent) => {
+  const handleAddToWishlist = (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -527,7 +530,7 @@ export default function ProductPage({ params }: ProductPageProps) {
     }
   };
 
-const handleCompareToggle = (e: React.MouseEvent) => {
+const handleCompareToggle = (e: MouseEvent) => {
   e.preventDefault();
   e.stopPropagation();
   

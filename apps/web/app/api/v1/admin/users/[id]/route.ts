@@ -4,7 +4,7 @@ import { adminService } from "@/lib/services/admin.service";
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await authenticateToken(req);
@@ -21,8 +21,9 @@ export async function PUT(
       );
     }
 
+    const { id } = await params;
     const data = await req.json();
-    const result = await adminService.updateUser(params.id, data);
+    const result = await adminService.updateUser(id, data);
     return NextResponse.json(result);
   } catch (error: any) {
     console.error("❌ [ADMIN] Error:", error);

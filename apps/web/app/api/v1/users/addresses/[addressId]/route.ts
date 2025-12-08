@@ -4,7 +4,7 @@ import { usersService } from "@/lib/services/users.service";
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { addressId: string } }
+  { params }: { params: Promise<{ addressId: string }> }
 ) {
   try {
     const user = await authenticateToken(req);
@@ -21,8 +21,9 @@ export async function PUT(
       );
     }
 
+    const { addressId } = await params;
     const data = await req.json();
-    const result = await usersService.updateAddress(user.id, params.addressId, data);
+    const result = await usersService.updateAddress(user.id, addressId, data);
     return NextResponse.json(result);
   } catch (error: any) {
     console.error("❌ [USERS] Error:", error);
@@ -41,7 +42,7 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { addressId: string } }
+  { params }: { params: Promise<{ addressId: string }> }
 ) {
   try {
     const user = await authenticateToken(req);
@@ -58,7 +59,8 @@ export async function DELETE(
       );
     }
 
-    await usersService.deleteAddress(user.id, params.addressId);
+    const { addressId } = await params;
+    await usersService.deleteAddress(user.id, addressId);
     return new NextResponse(null, { status: 204 });
   } catch (error: any) {
     console.error("❌ [USERS] Error:", error);

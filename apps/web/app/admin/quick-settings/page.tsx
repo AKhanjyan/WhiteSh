@@ -25,7 +25,7 @@ interface AdminBrand {
 }
 
 export default function QuickSettingsPage() {
-  const { isLoggedIn, isAdmin, isLoading, user } = useAuth();
+  const { isLoggedIn, isAdmin, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [globalDiscount, setGlobalDiscount] = useState<number>(0);

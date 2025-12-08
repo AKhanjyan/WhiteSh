@@ -18,6 +18,16 @@ interface CategoriesResponse {
   data: Category[];
 }
 
+interface ProductsResponse {
+  data: unknown[];
+  meta?: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
 export default function CategoriesPage() {
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -43,7 +53,7 @@ export default function CategoriesPage() {
       const counts: Record<string, number> = {};
       for (const category of categoriesList) {
         try {
-          const productsResponse = await apiClient.get('/api/v1/products', {
+          const productsResponse = await apiClient.get<ProductsResponse>('/api/v1/products', {
             params: {
               category: category.slug,
               limit: '1',

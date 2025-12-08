@@ -41,7 +41,7 @@ export function HomeCategoriesSidebar() {
   const [hoveredProduct, setHoveredProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [previewPosition, setPreviewPosition] = useState({ top: 0, left: 0 });
-  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const categoryButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -197,7 +197,6 @@ export function HomeCategoriesSidebar() {
       
       if (buttonRef) {
         const buttonRect = buttonRef.getBoundingClientRect();
-        const preview = previewRef.current;
         
         // Position preview to the right of sidebar, aligned with the hovered button
         const left = sidebarRect.width + 10;
@@ -252,7 +251,9 @@ export function HomeCategoriesSidebar() {
         <div className="p-2">
           {/* All Categories */}
           <button
-            ref={(el) => (categoryButtonRefs.current['all'] = el)}
+            ref={(el) => {
+              categoryButtonRefs.current['all'] = el;
+            }}
             onClick={() => handleCategoryClick(null)}
             onMouseEnter={() => {
               // Fetch a random product for "All"
@@ -276,7 +277,9 @@ export function HomeCategoriesSidebar() {
           {filteredCategories.map((category) => (
             <button
               key={category.id}
-              ref={(el) => (categoryButtonRefs.current[category.slug] = el)}
+              ref={(el) => {
+                categoryButtonRefs.current[category.slug] = el;
+              }}
               onClick={() => handleCategoryClick(category.slug)}
               onMouseEnter={() => handleCategoryHover(category.slug)}
               onMouseLeave={() => {

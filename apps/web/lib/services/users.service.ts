@@ -260,11 +260,11 @@ class UsersService {
 
     // Calculate statistics
     const totalOrders = orders.length;
-    const pendingOrders = orders.filter((o) => o.status === "pending").length;
-    const completedOrders = orders.filter((o) => o.status === "completed").length;
+    const pendingOrders = orders.filter((o: { status: string }) => o.status === "pending").length;
+    const completedOrders = orders.filter((o: { status: string }) => o.status === "completed").length;
     const totalSpent = orders
-      .filter((o) => o.status === "completed" || o.paymentStatus === "paid")
-      .reduce((sum, o) => sum + o.total, 0);
+      .filter((o: { status: string; paymentStatus: string }) => o.status === "completed" || o.paymentStatus === "paid")
+      .reduce((sum: number, o: { total: number }) => sum + o.total, 0);
 
     // Count addresses
     const addressesCount = await db.address.count({
@@ -273,12 +273,12 @@ class UsersService {
 
     // Count orders by status
     const ordersByStatus: Record<string, number> = {};
-    orders.forEach((order) => {
+    orders.forEach((order: { status: string }) => {
       ordersByStatus[order.status] = (ordersByStatus[order.status] || 0) + 1;
     });
 
     // Get recent orders (last 5)
-    const recentOrders = orders.slice(0, 5).map((order) => ({
+    const recentOrders = orders.slice(0, 5).map((order: { id: string; number: string; status: string; paymentStatus: string; fulfillmentStatus: string; total: number; currency: string | null; createdAt: Date; items: Array<unknown> }) => ({
       id: order.id,
       number: order.number,
       status: order.status,

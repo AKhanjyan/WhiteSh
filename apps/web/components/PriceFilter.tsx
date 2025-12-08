@@ -20,7 +20,7 @@ interface PriceRange {
   stepSize?: number | null;
 }
 
-export function PriceFilter({ currentMinPrice, currentMaxPrice, category, search }: PriceFilterProps) {
+export function PriceFilter({ currentMinPrice, currentMaxPrice, category }: PriceFilterProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [priceRange, setPriceRange] = useState<PriceRange>({ min: 0, max: 100000, stepSize: null });

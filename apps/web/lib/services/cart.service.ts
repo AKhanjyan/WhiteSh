@@ -85,7 +85,12 @@ class CartService {
 
     // Format items with details
     const itemsWithDetails = await Promise.all(
-      cart.items.map(async (item) => {
+      cart.items.map(async (item: {
+        id: string;
+        productId: string;
+        variantId: string;
+        quantity: number;
+      }) => {
         const product = await db.product.findUnique({
           where: { id: item.productId },
           include: {
@@ -98,7 +103,7 @@ class CartService {
 
         const variant = product?.variants[0];
         const translation =
-          product?.translations.find((t) => t.locale === locale) ||
+          product?.translations.find((t: { locale: string }) => t.locale === locale) ||
           product?.translations[0];
 
         let imageUrl = null;
@@ -254,7 +259,7 @@ class CartService {
     }
 
     // Check if item already exists
-    const existingItem = cart.items.find((item) => item.variantId === variantId);
+    const existingItem = cart.items.find((item: { variantId: string }) => item.variantId === variantId);
 
     let item;
     if (existingItem) {

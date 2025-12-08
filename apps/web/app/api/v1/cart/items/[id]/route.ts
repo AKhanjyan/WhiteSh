@@ -4,7 +4,7 @@ import { cartService } from "@/lib/services/cart.service";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await authenticateToken(req);
@@ -21,8 +21,9 @@ export async function PATCH(
       );
     }
 
+    const { id } = await params;
     const data = await req.json();
-    const result = await cartService.updateItem(user.id, params.id, data.quantity);
+    const result = await cartService.updateItem(user.id, id, data.quantity);
     return NextResponse.json(result);
   } catch (error: any) {
     console.error("❌ [CART] Error:", error);
@@ -41,7 +42,7 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await authenticateToken(req);
@@ -58,7 +59,8 @@ export async function DELETE(
       );
     }
 
-    await cartService.removeItem(user.id, params.id);
+    const { id } = await params;
+    await cartService.removeItem(user.id, id);
     return new NextResponse(null, { status: 204 });
   } catch (error: any) {
     console.error("❌ [CART] Error:", error);

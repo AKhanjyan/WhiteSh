@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
-import { Button, Card, Input } from '@shop/ui';
+import { Button } from '@shop/ui';
 import { apiClient } from '../../lib/api-client';
-import { ProductCard } from '../../components/ProductCard';
 import { getStoredLanguage } from '../../lib/language';
 import { PriceFilter } from '../../components/PriceFilter';
 import { ColorFilter } from '../../components/ColorFilter';
@@ -148,12 +147,10 @@ async function getProducts(
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ page?: string; search?: string; category?: string; minPrice?: string; maxPrice?: string; colors?: string; sizes?: string; brand?: string; sort?: string }> | { page?: string; search?: string; category?: string; minPrice?: string; maxPrice?: string; colors?: string; sizes?: string; brand?: string; sort?: string };
+  searchParams?: Promise<{ page?: string; search?: string; category?: string; minPrice?: string; maxPrice?: string; colors?: string; sizes?: string; brand?: string; sort?: string }>;
 }) {
-  // Handle both Promise (Next.js 15) and direct object (Next.js 14)
-  const resolvedSearchParams = searchParams instanceof Promise 
-    ? await searchParams 
-    : (searchParams || {});
+  // In Next.js 15, searchParams is always a Promise
+  const resolvedSearchParams = searchParams ? await searchParams : {};
   
   const page = parseInt(resolvedSearchParams?.page || '1', 10);
   const search = resolvedSearchParams?.search;

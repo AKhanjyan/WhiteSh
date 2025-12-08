@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
+import type { FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Input, Card } from '@shop/ui';
 import { useAuth } from '../../lib/auth/AuthContext';
 import { apiClient } from '../../lib/api-client';
-import { formatPrice, getStoredCurrency } from '../../lib/currency';
+import { formatPrice, type CurrencyCode } from '../../lib/currency';
 import { ProfileMenuDrawer } from '../../components/ProfileMenuDrawer';
 
 interface Address {
@@ -40,7 +41,7 @@ interface UserProfile {
 
 function ProfilePageContent() {
   const router = useRouter();
-  const { isLoggedIn, isLoading: authLoading, user: authUser, logout } = useAuth();
+  const { isLoggedIn, isLoading: authLoading, user: authUser } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -247,7 +248,7 @@ function ProfilePageContent() {
     }
   };
 
-  const handleSavePersonalInfo = async (e: React.FormEvent) => {
+  const handleSavePersonalInfo = async (e: FormEvent) => {
     e.preventDefault();
     setSavingPersonal(true);
     setError(null);
@@ -269,7 +270,7 @@ function ProfilePageContent() {
     }
   };
 
-  const handleSaveAddress = async (e: React.FormEvent) => {
+  const handleSaveAddress = async (e: FormEvent) => {
     e.preventDefault();
     setSavingAddress(true);
     setError(null);
@@ -356,7 +357,7 @@ function ProfilePageContent() {
     setEditingAddress(null);
   };
 
-  const handleChangePassword = async (e: React.FormEvent) => {
+  const handleChangePassword = async (e: FormEvent) => {
     e.preventDefault();
     setSavingPassword(true);
     setError(null);
@@ -830,7 +831,7 @@ function ProfilePageContent() {
                           </div>
                           <div className="text-right ml-4">
                             <p className="text-lg font-bold text-gray-900">
-                              {formatPrice(order.total, order.currency || 'AMD')}
+                              {formatPrice(order.total, (order.currency || 'AMD') as CurrencyCode)}
                             </p>
                             <p className="text-xs text-gray-500 mt-1">View Details →</p>
                           </div>
@@ -1223,7 +1224,7 @@ function ProfilePageContent() {
                     </div>
                     <div className="text-right ml-4">
                       <p className="text-lg font-bold text-gray-900">
-                        {formatPrice(order.total, order.currency || 'AMD')}
+                        {formatPrice(order.total, (order.currency || 'AMD') as CurrencyCode)}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">View Details →</p>
                     </div>

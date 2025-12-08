@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -36,7 +37,7 @@ interface ProductsResponse {
 /**
  * Get icon for category based on title/slug
  */
-function getCategoryIcon(categoryTitle: string, categorySlug: string): React.ReactNode {
+function getCategoryIcon(categoryTitle: string, categorySlug: string): ReactNode {
   const title = categoryTitle.toLowerCase();
   const slug = categorySlug.toLowerCase();
 

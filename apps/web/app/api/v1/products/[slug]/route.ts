@@ -3,12 +3,13 @@ import { productsService } from "@/lib/services/products.service";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
     const { searchParams } = new URL(req.url);
     const lang = searchParams.get("lang") || "en";
-    const result = await productsService.findBySlug(params.slug, lang);
+    const { slug } = await params;
+    const result = await productsService.findBySlug(slug, lang);
     return NextResponse.json(result);
   } catch (error: any) {
     console.error("❌ [PRODUCTS] Error:", error);

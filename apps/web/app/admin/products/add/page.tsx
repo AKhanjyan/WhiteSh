@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense, useRef } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../../../lib/auth/AuthContext';
 import { Card, Button, Input } from '@shop/ui';
@@ -8,14 +9,14 @@ import { apiClient } from '../../../../lib/api-client';
 
 // Component for adding new color/size
 function NewColorSizeInput({ 
-  variantId, 
-  type, 
+  variantId: _variantId, 
+  type: _type, 
   onAdd, 
   placeholder 
 }: { 
   variantId: string; 
   type: 'color' | 'size'; 
-  onAdd: (name: string) => void; 
+  onAdd: (_name: string) => void; 
   placeholder: string;
 }) {
   const [name, setName] = useState('');
@@ -226,8 +227,7 @@ function AddProductPageContent() {
           const product = await apiClient.get<ProductData>(`/api/v1/admin/products/${productId}`);
           
           // Transform product data to form format
-          const colorAttribute = attributes.find((attr) => attr.key === 'color');
-          const sizeAttribute = attributes.find((attr) => attr.key === 'size');
+          // Note: colorAttribute and sizeAttribute are available in attributes array if needed
           
           // Merge all variants into a single variant with all colors and sizes
           // This makes editing easier - all colors and sizes in one place
@@ -356,7 +356,7 @@ function AddProductPageContent() {
       .replace(/^-+|-+$/g, '');
   };
 
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTitleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const title = e.target.value;
     setFormData((prev) => ({
       ...prev,
@@ -665,7 +665,7 @@ function AddProductPageContent() {
       reader.readAsDataURL(file);
     });
 
-  const handleUploadImages = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadImages = async (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) {
       return;
@@ -810,7 +810,7 @@ function AddProductPageContent() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
 

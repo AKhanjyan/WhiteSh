@@ -131,8 +131,8 @@ class AuthService {
     console.log("🎫 [AUTH] Generating JWT token...");
     const token = jwt.sign(
       { userId: user.id },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+      process.env.JWT_SECRET as string,
+      { expiresIn: process.env.JWT_EXPIRES_IN || "7d" } as jwt.SignOptions
     );
     console.log("✅ [AUTH] JWT token generated");
 
@@ -239,8 +239,8 @@ class AuthService {
 
     const token = jwt.sign(
       { userId: user.id },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+      process.env.JWT_SECRET as string,
+      { expiresIn: process.env.JWT_EXPIRES_IN || "7d" } as jwt.SignOptions
     );
 
     console.log("✅ [AUTH] Login successful, token generated");

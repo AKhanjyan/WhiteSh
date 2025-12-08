@@ -36,16 +36,19 @@ const getLanguageColor = (code: LanguageCode, isActive: boolean): string => {
 };
 
 declare global {
+  // eslint-disable-next-line no-unused-vars
   interface Window {
     google: {
       translate: {
         TranslateElement: {
           new (
+            // eslint-disable-next-line no-unused-vars
             options: {
               pageLanguage: string;
               includedLanguages: string;
               layout: number;
             },
+            // eslint-disable-next-line no-unused-vars
             elementId: string
           ): void;
           InlineLayout: {
@@ -60,7 +63,6 @@ declare global {
 export function GoogleTranslate() {
   const [showMenu, setShowMenu] = useState(false);
   const [currentLang, setCurrentLang] = useState<LanguageCode>('en');
-  const [isLoaded, setIsLoaded] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const hiddenElementRef = useRef<HTMLDivElement>(null);
 
@@ -82,7 +84,6 @@ export function GoogleTranslate() {
             },
             'google_translate_element'
           );
-          setIsLoaded(true);
         } catch (error) {
           console.error('Error initializing Google Translate:', error);
         }

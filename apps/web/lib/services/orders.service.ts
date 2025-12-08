@@ -1,5 +1,4 @@
 import { db } from "@white-shop/db";
-import { cartService } from "./cart.service";
 
 function generateOrderNumber(): string {
   const now = new Date();
@@ -86,7 +85,14 @@ class OrdersService {
 
         // Format cart items
         cartItems = await Promise.all(
-          cart.items.map(async (item) => {
+          cart.items.map(async (item: {
+            productId: string;
+            variantId: string;
+            quantity: number;
+            priceSnapshot: number;
+            product: any;
+            variant: any;
+          }) => {
             const product = item.product;
             const variant = item.variant;
             const translation = product.translations?.[0] || product.translations?.[0];
@@ -237,7 +243,7 @@ class OrdersService {
       const orderNumber = generateOrderNumber();
 
       // Create order with items in a transaction
-      const order = await db.$transaction(async (tx) => {
+      const order = await db.$transaction(async (tx: any) => {
         // Create order
         const newOrder = await tx.order.create({
           data: {
@@ -390,7 +396,17 @@ class OrdersService {
     });
 
     return {
-      data: orders.map((order) => ({
+      data: orders.map((order: {
+        id: string;
+        number: string;
+        status: string;
+        paymentStatus: string;
+        fulfillmentStatus: string;
+        total: number;
+        currency: string;
+        createdAt: Date;
+        items: Array<{ id: string }>;
+      }) => ({
         id: order.id,
         number: order.number,
         status: order.status,
@@ -445,7 +461,16 @@ class OrdersService {
       status: order.status,
       paymentStatus: order.paymentStatus,
       fulfillmentStatus: order.fulfillmentStatus,
-      items: order.items.map((item) => ({
+      items: order.items.map((item: {
+        variantId: string | null;
+        productTitle: string;
+        variantTitle: string | null;
+        sku: string;
+        quantity: number;
+        price: number;
+        total: number;
+        imageUrl: string | null;
+      }) => ({
         variantId: item.variantId || '',
         productTitle: item.productTitle,
         variantTitle: item.variantTitle || '',

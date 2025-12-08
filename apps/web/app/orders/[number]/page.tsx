@@ -6,8 +6,6 @@ import Link from 'next/link';
 import { Card, Button } from '@shop/ui';
 import { apiClient } from '../../../lib/api-client';
 import { formatPrice, getStoredCurrency } from '../../../lib/currency';
-import { getStoredLanguage } from '../../../lib/language';
-import { getTranslation } from '../../../lib/translations';
 import { useAuth } from '../../../lib/auth/AuthContext';
 
 interface OrderItem {
@@ -60,7 +58,6 @@ export default function OrderPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currency, setCurrency] = useState(getStoredCurrency());
-  const [language, setLanguage] = useState(getStoredLanguage());
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -74,16 +71,10 @@ export default function OrderPage() {
       setCurrency(getStoredCurrency());
     };
 
-    const handleLanguageUpdate = () => {
-      setLanguage(getStoredLanguage());
-    };
-
     window.addEventListener('currency-updated', handleCurrencyUpdate);
-    window.addEventListener('language-updated', handleLanguageUpdate);
 
     return () => {
       window.removeEventListener('currency-updated', handleCurrencyUpdate);
-      window.removeEventListener('language-updated', handleLanguageUpdate);
     };
   }, [isLoggedIn, params.number, router]);
 

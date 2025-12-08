@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Home, Filter, Heart, UserRound, Shuffle, ShoppingCart, Store } from 'lucide-react';
+import { Home, Filter, UserRound, ShoppingCart, Store } from 'lucide-react';
 import { getCompareCount, getWishlistCount } from '../lib/storageCounts';
 import { MOBILE_FILTERS_EVENT } from '../lib/events';
 

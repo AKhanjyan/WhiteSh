@@ -10,7 +10,7 @@ interface Product {
   slug: string;
   title: string;
   price: number;
-  compareAtPrice: number | null;
+  compareAtPrice?: number | null;
   image: string | null;
   inStock: boolean;
   brand: {

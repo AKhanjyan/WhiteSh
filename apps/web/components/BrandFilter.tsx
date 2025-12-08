@@ -20,6 +20,24 @@ interface BrandOption {
   count: number;
 }
 
+interface Product {
+  id: string;
+  brand?: {
+    id: string;
+    name: string;
+  } | null;
+}
+
+interface ProductsResponse {
+  data?: Product[];
+  meta?: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
 export function BrandFilter({ category, search, minPrice, maxPrice, selectedBrand }: BrandFilterProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -57,12 +75,12 @@ export function BrandFilter({ category, search, minPrice, maxPrice, selectedBran
       if (maxPrice) params.maxPrice = maxPrice;
 
       // Fetch products to extract brands
-      const response = await apiClient.get('/api/v1/products', { params: { ...params, limit: '1000' } });
+      const response = await apiClient.get<ProductsResponse>('/api/v1/products', { params: { ...params, limit: '1000' } });
       
       // Extract unique brands from products
       const brandCountMap = new Map<string, { id: string; name: string; count: number }>();
       
-      response.data?.forEach((product: any) => {
+      response.data?.forEach((product) => {
         if (product.brand?.id && product.brand?.name) {
           const brandId = product.brand.id;
           const brandName = product.brand.name;

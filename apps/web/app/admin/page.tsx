@@ -71,11 +71,14 @@ export default function AdminPanel() {
   const router = useRouter();
   const pathname = usePathname();
   const [stats, setStats] = useState<Stats | null>(null);
+  // Activity state - used in fetchActivity function (setActivity/setActivityLoading)
+  // eslint-disable-next-line no-unused-vars
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [userActivity, setUserActivity] = useState<UserActivity | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  // eslint-disable-next-line no-unused-vars
   const [activityLoading, setActivityLoading] = useState(true);
   const [recentOrdersLoading, setRecentOrdersLoading] = useState(true);
   const [topProductsLoading, setTopProductsLoading] = useState(true);

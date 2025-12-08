@@ -4,7 +4,7 @@ import { usersService } from "@/lib/services/users.service";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { addressId: string } }
+  { params }: { params: Promise<{ addressId: string }> }
 ) {
   try {
     const user = await authenticateToken(req);
@@ -21,7 +21,8 @@ export async function PATCH(
       );
     }
 
-    const result = await usersService.setDefaultAddress(user.id, params.addressId);
+    const { addressId } = await params;
+    const result = await usersService.setDefaultAddress(user.id, addressId);
     return NextResponse.json(result);
   } catch (error: any) {
     console.error("❌ [USERS] Error:", error);

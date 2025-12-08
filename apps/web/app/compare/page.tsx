@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import type { MouseEvent } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -148,7 +149,7 @@ export default function ComparePage() {
     };
   }, []);
 
-  const handleRemove = (e: React.MouseEvent, productId: string) => {
+  const handleRemove = (e: MouseEvent, productId: string) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -160,7 +161,7 @@ export default function ComparePage() {
     window.dispatchEvent(new Event('compare-updated'));
   };
 
-  const handleAddToCart = async (e: React.MouseEvent, product: Product) => {
+  const handleAddToCart = async (e: MouseEvent, product: Product) => {
     e.preventDefault();
     e.stopPropagation();
     

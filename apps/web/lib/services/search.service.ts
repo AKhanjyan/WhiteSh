@@ -20,11 +20,15 @@ const INDEX_NAME = 'products';
  */
 async function getIndex() {
   try {
-    return await searchClient.getIndex(INDEX_NAME);
+    const index = await searchClient.getIndex(INDEX_NAME);
+    return index;
   } catch (error: any) {
     if (error.code === 'index_not_found') {
       // Create index if it doesn't exist
-      return await searchClient.createIndex(INDEX_NAME, { primaryKey: 'id' });
+      const task = await searchClient.createIndex(INDEX_NAME, { primaryKey: 'id' });
+      // Wait for the task to complete and return the index
+      await searchClient.waitForTask(task.taskUid);
+      return await searchClient.getIndex(INDEX_NAME);
     }
     throw error;
   }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '../../../lib/auth/AuthContext';
-import { Card, Button } from '@shop/ui';
+import { Card } from '@shop/ui';
 import { apiClient } from '../../../lib/api-client';
 
 interface AnalyticsData {
@@ -140,7 +140,6 @@ export default function AnalyticsPage() {
     if (!data || data.length === 0) return null;
 
     const maxCount = Math.max(...data.map(d => d.count), 1);
-    const maxRevenue = Math.max(...data.map(d => d.revenue), 1);
     const width = 800;
     const height = 300;
     const padding = { top: 30, right: 40, bottom: 50, left: 50 };

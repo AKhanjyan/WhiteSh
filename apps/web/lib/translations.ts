@@ -1,5 +1,5 @@
 // Translation utilities
-import { getStoredLanguage, type LanguageCode, LANGUAGES } from './language';
+import { getStoredLanguage, type LanguageCode } from './language';
 
 export const translations = {
   en: {

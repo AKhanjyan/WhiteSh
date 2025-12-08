@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 
 interface MobileFiltersDrawerProps {
   title?: string;
   triggerLabel?: string;
-  children: React.ReactNode;
+  children: ReactNode;
   openEventName?: string;
 }
 

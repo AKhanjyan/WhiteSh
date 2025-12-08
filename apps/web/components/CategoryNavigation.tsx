@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense, useRef, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -51,7 +52,7 @@ function flattenCategories(cats: Category[]): Category[] {
 /**
  * Get category icon based on title/slug
  */
-function getCategoryIcon(categoryTitle: string, categorySlug: string, isActive: boolean): React.ReactNode {
+function getCategoryIcon(categoryTitle: string, categorySlug: string, isActive: boolean): ReactNode {
   const title = categoryTitle.toLowerCase();
   const slug = categorySlug.toLowerCase();
 

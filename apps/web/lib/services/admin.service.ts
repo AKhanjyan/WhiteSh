@@ -1,5 +1,4 @@
 import { db } from "@white-shop/db";
-import { requireAdmin } from "@/lib/middleware/auth";
 
 class AdminService {
   /**
@@ -55,7 +54,7 @@ class AdminService {
       },
     });
 
-    const totalRevenue = completedOrders.reduce((sum, order) => sum + order.total, 0);
+    const totalRevenue = completedOrders.reduce((sum: number, order: { total: number; currency: string | null }) => sum + order.total, 0);
     const currency = completedOrders[0]?.currency || "AMD";
 
     return {
@@ -81,7 +80,7 @@ class AdminService {
   /**
    * Get users
    */
-  async getUsers(filters: any) {
+  async getUsers(_filters: any) {
     const users = await db.user.findMany({
       where: {
         deletedAt: null,
@@ -91,7 +90,7 @@ class AdminService {
     });
 
     return {
-      data: users.map((user) => ({
+      data: users.map((user: { id: string; email: string | null; phone: string | null; firstName: string | null; lastName: string | null; roles: string[] | null; blocked: boolean; createdAt: Date }) => ({
         id: user.id,
         email: user.email,
         phone: user.phone,
@@ -120,7 +119,7 @@ class AdminService {
   /**
    * Get orders
    */
-  async getOrders(filters: any) {
+  async getOrders(_filters: any) {
     const orders = await db.order.findMany({
       take: 100,
       orderBy: { createdAt: "desc" },
@@ -513,7 +512,7 @@ class AdminService {
 
     // Безопасное получение translation с проверкой на существование массива
     const translations = Array.isArray(product.translations) ? product.translations : [];
-    const translation = translations.find((t) => t.locale === "en") || translations[0] || null;
+    const translation = translations.find((t: { locale: string }) => t.locale === "en") || translations[0] || null;
 
     // Безопасное получение labels с проверкой на существование массива
     const labels = Array.isArray(product.labels) ? product.labels : [];
@@ -532,18 +531,18 @@ class AdminService {
       categoryIds: product.categoryIds || [],
       published: product.published,
       media: Array.isArray(product.media) ? product.media : [],
-      labels: labels.map((label) => ({
+      labels: labels.map((label: { id: string; type: string; value: string; position: string; color: string | null }) => ({
         id: label.id,
         type: label.type,
         value: label.value,
         position: label.position,
         color: label.color,
       })),
-      variants: variants.map((variant) => {
+      variants: variants.map((variant: { id: string; price: number; sku: string | null; stock: number; compareAtPrice?: number | null; imageUrl?: string | null; published?: boolean; options?: Array<{ attributeKey: string; value: string }> }) => {
         // Безопасное получение options с проверкой на существование массива
         const options = Array.isArray(variant.options) ? variant.options : [];
-        const colorOption = options.find((opt) => opt.attributeKey === "color");
-        const sizeOption = options.find((opt) => opt.attributeKey === "size");
+        const colorOption = options.find((opt: { attributeKey: string }) => opt.attributeKey === "color");
+        const sizeOption = options.find((opt: { attributeKey: string }) => opt.attributeKey === "size");
 
         return {
           id: variant.id,
@@ -554,7 +553,7 @@ class AdminService {
           color: colorOption?.value || "",
           size: sizeOption?.value || "",
           imageUrl: variant.imageUrl || "",
-          published: variant.published,
+          published: variant.published || false,
         };
       }),
     };
@@ -1081,9 +1080,9 @@ class AdminService {
       },
     });
     
-    const globalDiscountSetting = settings.find(s => s.key === 'globalDiscount');
-    const categoryDiscountsSetting = settings.find(s => s.key === 'categoryDiscounts');
-    const brandDiscountsSetting = settings.find(s => s.key === 'brandDiscounts');
+    const globalDiscountSetting = settings.find((s: { key: string; value: string }) => s.key === 'globalDiscount');
+    const categoryDiscountsSetting = settings.find((s: { key: string; value: string }) => s.key === 'categoryDiscounts');
+    const brandDiscountsSetting = settings.find((s: { key: string; value: string }) => s.key === 'brandDiscounts');
     
     return {
       globalDiscount: globalDiscountSetting ? Number(globalDiscountSetting.value) : 0,
@@ -1241,7 +1240,7 @@ class AdminService {
       },
     });
 
-    const recentRegistrations = recentUsers.map((user) => ({
+    const recentRegistrations = recentUsers.map((user: { id: string; email: string | null; phone: string | null; firstName: string | null; lastName: string | null; createdAt: Date }) => ({
       id: user.id,
       email: user.email || undefined,
       phone: user.phone || undefined,
@@ -1271,10 +1270,10 @@ class AdminService {
       take: limit,
     });
 
-    const activeUsers = usersWithOrders.map((user) => {
+    const activeUsers = usersWithOrders.map((user: { id: string; email: string | null; phone: string | null; firstName: string | null; lastName: string | null; createdAt: Date; orders: Array<{ id: string; total: number; createdAt: Date }> }) => {
       const orders = Array.isArray(user.orders) ? user.orders : [];
       const orderCount = orders.length;
-      const totalSpent = orders.reduce((sum, order) => sum + order.total, 0);
+      const totalSpent = orders.reduce((sum: number, order: { total: number }) => sum + order.total, 0);
       const lastOrder = orders[0] || null;
 
       return {
@@ -1307,7 +1306,7 @@ class AdminService {
       },
     });
 
-    return orders.map((order) => ({
+    return orders.map((order: { id: string; number: string; status: string; paymentStatus: string; total: number; currency: string | null; customerEmail: string | null; customerPhone: string | null; createdAt: Date; items: Array<unknown> }) => ({
       id: order.id,
       number: order.number,
       status: order.status,
@@ -1358,16 +1357,17 @@ class AdminService {
       }
     >();
 
-    orderItems.forEach((item) => {
+    orderItems.forEach((item: { variantId: string | null; quantity: number; total: number; variant?: { id: string; productId: string; sku: string | null; product?: { translations?: Array<{ title: string }>; media?: Array<{ url?: string }> } }; sku?: string }) => {
       if (!item.variant) return;
 
       const variantId = item.variantId || item.variant.id;
       const productId = item.variant.productId;
       const product = item.variant.product;
-      const translation = product?.translations[0];
+      const translations = product?.translations || [];
+      const translation = translations[0];
       const title = translation?.title || "Unknown Product";
       const sku = item.variant.sku || item.sku || "N/A";
-      const image = Array.isArray(product?.media) && product.media.length > 0
+      const image = product && Array.isArray(product.media) && product.media.length > 0
         ? (product.media[0] as any)?.url || null
         : null;
 
@@ -1418,7 +1418,7 @@ class AdminService {
     });
 
     return {
-      data: categories.map((category) => {
+      data: categories.map((category: { id: string; parentId: string | null; requiresSizes: boolean | null; translations?: Array<{ title: string; slug: string }> }) => {
         const translations = Array.isArray(category.translations) ? category.translations : [];
         const translation = translations[0] || null;
         return {
@@ -1470,7 +1470,7 @@ class AdminService {
 
     // Безопасное получение translation с проверкой на существование массива
     const categoryTranslations = Array.isArray(category.translations) ? category.translations : [];
-    const translation = categoryTranslations.find((t) => t.locale === locale) || categoryTranslations[0] || null;
+    const translation = categoryTranslations.find((t: { locale: string }) => t.locale === locale) || categoryTranslations[0] || null;
 
     return {
       data: {
@@ -1503,7 +1503,7 @@ class AdminService {
     });
 
     return {
-      data: brands.map((brand) => {
+      data: brands.map((brand: { id: string; slug: string; translations?: Array<{ name: string }> }) => {
         const translations = Array.isArray(brand.translations) ? brand.translations : [];
         const translation = translations[0] || null;
         return {
@@ -1575,7 +1575,7 @@ class AdminService {
 
     // Безопасное получение translation с проверкой на существование массива
     const brandTranslations = Array.isArray(brand.translations) ? brand.translations : [];
-    const translation = brandTranslations.find((t) => t.locale === locale) || brandTranslations[0] || null;
+    const translation = brandTranslations.find((t: { locale: string }) => t.locale === locale) || brandTranslations[0] || null;
 
     return {
       data: {
@@ -1734,7 +1734,7 @@ class AdminService {
     });
 
     return {
-      data: attributes.map((attribute) => {
+      data: attributes.map((attribute: { id: string; key: string; type: string; filterable: boolean; translations?: Array<{ name: string }>; values?: Array<{ id: string; value: string; translations?: Array<{ label: string }> }> }) => {
         const translations = Array.isArray(attribute.translations) ? attribute.translations : [];
         const translation = translations[0] || null;
         const values = Array.isArray(attribute.values) ? attribute.values : [];
@@ -1744,7 +1744,7 @@ class AdminService {
           name: translation?.name || attribute.key,
           type: attribute.type,
           filterable: attribute.filterable,
-          values: values.map((value) => {
+          values: values.map((value: { id: string; value: string; translations?: Array<{ label: string }> }) => {
             const valueTranslations = Array.isArray(value.translations) ? value.translations : [];
             const valueTranslation = valueTranslations[0] || null;
             return {
@@ -1778,7 +1778,7 @@ class AdminService {
       },
     });
 
-    recentOrders.forEach((order) => {
+    recentOrders.forEach((order: { number: string; items: Array<unknown>; total: number; currency: string | null; createdAt: Date }) => {
       activities.push({
         type: "order",
         title: `New Order #${order.number}`,
@@ -1794,7 +1794,7 @@ class AdminService {
       where: { deletedAt: null },
     });
 
-    recentUsers.forEach((user) => {
+    recentUsers.forEach((user: { firstName: string | null; lastName: string | null; email: string | null; phone: string | null; createdAt: Date }) => {
       const name = [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email || user.phone || "New User";
       activities.push({
         type: "user",
@@ -1895,12 +1895,12 @@ class AdminService {
 
     // Calculate order statistics
     const totalOrders = orders.length;
-    const paidOrders = orders.filter((o) => o.paymentStatus === 'paid').length;
-    const pendingOrders = orders.filter((o) => o.status === 'pending').length;
-    const completedOrders = orders.filter((o) => o.status === 'completed').length;
+    const paidOrders = orders.filter((o: { paymentStatus: string }) => o.paymentStatus === 'paid').length;
+    const pendingOrders = orders.filter((o: { status: string }) => o.status === 'pending').length;
+    const completedOrders = orders.filter((o: { status: string }) => o.status === 'completed').length;
     const totalRevenue = orders
-      .filter((o) => o.paymentStatus === 'paid')
-      .reduce((sum, o) => sum + o.total, 0);
+      .filter((o: { paymentStatus: string }) => o.paymentStatus === 'paid')
+      .reduce((sum: number, o: { total: number }) => sum + o.total, 0);
 
     // Calculate top products
     const productMap = new Map<string, {
@@ -1914,19 +1914,19 @@ class AdminService {
       image?: string | null;
     }>();
 
-    orders.forEach((order) => {
-      order.items.forEach((item) => {
+    orders.forEach((order: { items: Array<{ variantId: string | null; variant?: { product?: { id: string; translations?: Array<{ title: string }>; media?: Array<{ url?: string }> } }; productTitle?: string; sku?: string; quantity: number; total: number }> }) => {
+      order.items.forEach((item: { variantId: string | null; variant?: { product?: { id: string; translations?: Array<{ title: string }>; media?: Array<{ url?: string }> } }; productTitle?: string; sku?: string; quantity: number; total: number }) => {
         if (item.variantId) {
           const key = item.variantId;
           const existing = productMap.get(key) || {
             variantId: item.variantId,
             productId: item.variant?.product?.id || '',
-            title: item.productTitle,
-            sku: item.sku,
+            title: item.productTitle || 'Unknown Product',
+            sku: item.sku || 'N/A',
             totalQuantity: 0,
             totalRevenue: 0,
             orderCount: 0,
-            image: item.imageUrl || item.variant?.imageUrl || null,
+            image: null,
           };
           existing.totalQuantity += item.quantity;
           existing.totalRevenue += item.total;
@@ -1949,12 +1949,13 @@ class AdminService {
       orderCount: number;
     }>();
 
-    orders.forEach((order) => {
-      order.items.forEach((item) => {
+    orders.forEach((order: { items: Array<{ variant?: { product?: { categories: Array<{ id: string; translations?: Array<{ title: string }> }> } }; quantity: number; total: number }> }) => {
+      order.items.forEach((item: { variant?: { product?: { categories: Array<{ id: string; translations?: Array<{ title: string }> }> } }; quantity: number; total: number }) => {
         if (item.variant?.product) {
-          item.variant.product.categories.forEach((category) => {
+          item.variant.product.categories.forEach((category: { id: string; translations?: Array<{ title: string }> }) => {
             const categoryId = category.id;
-            const categoryName = category.translations[0]?.title || category.id;
+            const translations = category.translations || [];
+            const categoryName = translations[0]?.title || category.id;
             const existing = categoryMap.get(categoryId) || {
               categoryId,
               categoryName,
@@ -1978,7 +1979,7 @@ class AdminService {
     // Calculate orders by day
     const ordersByDayMap = new Map<string, { count: number; revenue: number }>();
 
-    orders.forEach((order) => {
+    orders.forEach((order: { createdAt: Date; paymentStatus: string; total: number }) => {
       const dateKey = order.createdAt.toISOString().split('T')[0];
       const existing = ordersByDayMap.get(dateKey) || { count: 0, revenue: 0 };
       existing.count += 1;
