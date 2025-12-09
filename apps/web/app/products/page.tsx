@@ -40,8 +40,7 @@ interface ProductsResponse {
 }
 
 /**
- * Մատչելի API-ից բերում է ապրանքների ցանկը՝ կիրառելով բոլոր ֆիլտրերը։
- * Fixed for Vercel production: always uses NEXT_PUBLIC_APP_URL
+ * Fetch products (PRODUCTION SAFE)
  */
 async function getProducts(
   page: number = 1,
@@ -71,89 +70,81 @@ async function getProducts(
 
     const queryString = new URLSearchParams(params).toString();
 
-    // ⭐ PRODUCTION-SAFE FETCH (Works in Vercel SSR, RSC & SSG)
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!baseUrl) throw new Error("❌ NEXT_PUBLIC_APP_URL is missing.");
 
-    if (!baseUrl) {
-      throw new Error("❌ NEXT_PUBLIC_APP_URL is missing from environment variables.");
-    }
+    const res = await fetch(`${baseUrl}/api/v1/products?${queryString}`, {
+      cache: "no-store"
+    });
 
-    const fetchResponse = await fetch(
-      `${baseUrl}/api/v1/products?${queryString}`,
-      { cache: "no-store" }
-    );
+    if (!res.ok) throw new Error(`API failed: ${res.status}`);
 
-    if (!fetchResponse.ok) {
-      throw new Error(`API request failed: ${fetchResponse.status}`);
-    }
-
-    const response = await fetchResponse.json();
-
-    if (!response?.data || !Array.isArray(response.data)) {
+    const response = await res.json();
+    if (!response.data || !Array.isArray(response.data)) {
       return {
         data: [],
-        meta: {
-          total: 0,
-          page: 1,
-          limit: 24,
-          totalPages: 0,
-        },
+        meta: { total: 0, page: 1, limit: 24, totalPages: 0 }
       };
     }
 
     return response;
 
-  } catch (error: any) {
-    console.error('❌ [PRODUCTS] Error fetching products:', error);
+  } catch (e) {
+    console.error("❌ PRODUCT ERROR", e);
     return {
       data: [],
-      meta: {
-        total: 0,
-        page: 1,
-        limit: 24,
-        totalPages: 0,
-      },
+      meta: { total: 0, page: 1, limit: 24, totalPages: 0 }
     };
   }
 }
 
 /**
- * Products Page
+ * PAGE
  */
-export default async function ProductsPage({
-  searchParams,
-}: {
-  searchParams?: Promise<{ page?: string; search?: string; category?: string; minPrice?: string; maxPrice?: string; colors?: string; sizes?: string; brand?: string; sort?: string }>;
-}) {
-  const resolvedSearchParams = searchParams ? await searchParams : {};
+export default async function ProductsPage({ searchParams }: any) {
+  const params = searchParams ? await searchParams : {};
+  const page = parseInt(params?.page || "1", 10);
 
-  const page = parseInt(resolvedSearchParams?.page || '1', 10);
-  const search = resolvedSearchParams?.search;
-  const category = resolvedSearchParams?.category;
-  const minPrice = resolvedSearchParams?.minPrice;
-  const maxPrice = resolvedSearchParams?.maxPrice;
-  const colors = resolvedSearchParams?.colors;
-  const sizes = resolvedSearchParams?.sizes;
-  const brand = resolvedSearchParams?.brand;
-  const sort = resolvedSearchParams?.sort;
+  const productsData = await getProducts(
+    page,
+    params?.search,
+    params?.category,
+    params?.minPrice,
+    params?.maxPrice,
+    params?.colors,
+    params?.sizes,
+    params?.brand
+  );
 
-  const productsData = await getProducts(page, search, category, minPrice, maxPrice, colors, sizes, brand);
+  // ------------------------------------
+  // 🔧 FIX: normalize products 
+  // add missing inStock, missing image fields 
+  // ------------------------------------
+  const normalizedProducts = productsData.data.map((p: any) => ({
+    id: p.id,
+    slug: p.slug,
+    title: p.title,
+    price: p.price,
+    compareAtPrice: p.compareAtPrice ?? p.originalPrice ?? null,
+    image: p.image ?? null,
+    inStock: p.inStock ?? true,      // ⭐ FIXED
+    brand: p.brand ?? null
+  }));
 
+  // FILTERS
+  const colors = params?.colors;
+  const sizes = params?.sizes;
   const selectedColors = colors ? colors.split(',').map(c => c.trim().toLowerCase()) : [];
   const selectedSizes = sizes ? sizes.split(',').map(s => s.trim()) : [];
 
-  const buildPaginationUrl = (pageNum: number) => {
-    const params = new URLSearchParams();
-    params.set('page', pageNum.toString());
-    if (search) params.set('search', search);
-    if (category) params.set('category', category);
-    if (minPrice) params.set('minPrice', minPrice);
-    if (maxPrice) params.set('maxPrice', maxPrice);
-    if (colors) params.set('colors', colors);
-    if (sizes) params.set('sizes', sizes);
-    if (brand) params.set('brand', brand);
-    if (sort) params.set('sort', sort);
-    return `/products?${params.toString()}`;
+  // PAGINATION
+  const buildPaginationUrl = (num: number) => {
+    const q = new URLSearchParams();
+    q.set("page", num.toString());
+    Object.entries(params).forEach(([k, v]) => {
+      if (k !== "page" && v) q.set(k, v);
+    });
+    return `/products?${q.toString()}`;
   };
 
   return (
@@ -164,61 +155,41 @@ export default async function ProductsPage({
       </div>
 
       <div className={`${PAGE_CONTAINER} flex gap-8`}>
-        <aside className="w-64 flex-shrink-0 hidden lg:block bg-gray-50 min-h-screen rounded-xl">
+        <aside className="w-64 hidden lg:block bg-gray-50 rounded-xl">
           <div className="sticky top-4 p-4 space-y-6">
-            <Suspense fallback={<div className="text-sm text-gray-500">Loading filters...</div>}>
-              <PriceFilter currentMinPrice={minPrice} currentMaxPrice={maxPrice} category={category} search={search} />
-              <ColorFilter category={category} search={search} minPrice={minPrice} maxPrice={maxPrice} selectedColors={selectedColors} />
-              <SizeFilter category={category} search={search} minPrice={minPrice} maxPrice={maxPrice} selectedSizes={selectedSizes} />
-              <BrandFilter category={category} search={search} minPrice={minPrice} maxPrice={maxPrice} selectedBrand={brand} />
+            <Suspense fallback={<div>Loading filters...</div>}>
+              <PriceFilter currentMinPrice={params?.minPrice} currentMaxPrice={params?.maxPrice} category={params?.category} search={params?.search} />
+              <ColorFilter category={params?.category} search={params?.search} minPrice={params?.minPrice} maxPrice={params?.maxPrice} selectedColors={selectedColors} />
+              <SizeFilter category={params?.category} search={params?.search} minPrice={params?.minPrice} maxPrice={params?.maxPrice} selectedSizes={selectedSizes} />
+              <BrandFilter category={params?.category} search={params?.search} minPrice={params?.minPrice} maxPrice={params?.maxPrice} selectedBrand={params?.brand} />
             </Suspense>
           </div>
         </aside>
 
-        <div className="flex-1 min-w-0 py-4">
-          <div className="mb-6">
-            <MobileFiltersDrawer triggerLabel="Filters" openEventName={MOBILE_FILTERS_EVENT}>
-              <Suspense fallback={<div className="text-sm text-gray-500">Loading filters...</div>}>
-                <PriceFilter currentMinPrice={minPrice} currentMaxPrice={maxPrice} category={category} search={search} />
-                <ColorFilter category={category} search={search} minPrice={minPrice} maxPrice={maxPrice} selectedColors={selectedColors} />
-                <SizeFilter category={category} search={search} minPrice={minPrice} maxPrice={maxPrice} selectedSizes={selectedSizes} />
-                <BrandFilter category={category} search={search} minPrice={minPrice} maxPrice={maxPrice} selectedBrand={brand} />
-              </Suspense>
-            </MobileFiltersDrawer>
-          </div>
+        <div className="flex-1 py-4">
 
-          {productsData.data.length > 0 ? (
+          {normalizedProducts.length > 0 ? (
             <>
-              <ProductsGrid products={productsData.data} sortBy={sort || 'default'} />
+              <ProductsGrid products={normalizedProducts} sortBy={params?.sort || "default"} />
 
               {productsData.meta.totalPages > 1 && (
                 <div className="mt-8 flex justify-center gap-2">
-                  {page > 1 && (
-                    <Link href={buildPaginationUrl(page - 1)}>
-                      <Button variant="outline">Previous</Button>
-                    </Link>
-                  )}
-                  <span className="flex items-center px-4">
-                    Page {page} of {productsData.meta.totalPages}
-                  </span>
-                  {page < productsData.meta.totalPages && (
-                    <Link href={buildPaginationUrl(page + 1)}>
-                      <Button variant="outline">Next</Button>
-                    </Link>
-                  )}
+                  {page > 1 && <Link href={buildPaginationUrl(page - 1)}><Button variant="outline">Previous</Button></Link>}
+                  <span>Page {page} of {productsData.meta.totalPages}</span>
+                  {page < productsData.meta.totalPages && <Link href={buildPaginationUrl(page + 1)}><Button variant="outline">Next</Button></Link>}
                 </div>
               )}
             </>
           ) : (
             <div className="text-center py-12">
-              <div className="max-w-md mx-auto">
-                <p className="text-gray-500 text-lg font-medium mb-3">No products found</p>
-              </div>
+              <p className="text-gray-500 text-lg">No products found</p>
             </div>
           )}
+
         </div>
       </div>
     </div>
   );
 }
+
 
