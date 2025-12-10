@@ -180,6 +180,7 @@
 - ⚠️ Migration script գոյություն ունի, բայց data migration-ը դեռ չի արվել (եթե անհրաժեշտ է)
 - ⚠️ Runtime testing-ը պահանջում է database setup
 - ✅ Products էջում ֆիլտրերի սանիտիզացում (colors/sizes)՝ placeholder արժեքները չեն զտում ապրանքները, առանց գույն/չափս ապրանքները ցուցադրվում են
+- ✅ Admin Orders/Users/Products էջերում ավելացվել են checkbox-եր և bulk delete UI (fallback per-item delete), աշխատում է լոկալ/պրոդ միջավայրի համար
 
 ## Ամփոփում
 

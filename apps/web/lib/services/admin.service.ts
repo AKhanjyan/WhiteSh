@@ -117,6 +117,34 @@ class AdminService {
   }
 
   /**
+   * Delete user (soft delete)
+   */
+  async deleteUser(userId: string) {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw {
+        status: 404,
+        type: "https://api.shop.am/problems/not-found",
+        title: "User not found",
+        detail: `User with id '${userId}' does not exist`,
+      };
+    }
+
+    await db.user.update({
+      where: { id: userId },
+      data: {
+        deletedAt: new Date(),
+        blocked: true,
+      },
+    });
+
+    return { success: true };
+  }
+
+  /**
    * Get orders
    */
   async getOrders(_filters: any) {

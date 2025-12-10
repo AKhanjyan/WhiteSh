@@ -723,19 +723,17 @@ function ProfilePageContent() {
                   </div>
                 </Card>
 
-                <Card className="p-6 bg-gradient-to-br from-green-50 via-emerald-50 to-green-100 border-2 border-green-200/60 hover:border-green-300 hover:shadow-xl transition-all duration-300 overflow-hidden relative">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-green-200/20 rounded-full blur-3xl -mr-16 -mt-16"></div>
-                  <div className="relative z-10 flex items-start justify-between gap-6">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-green-700 uppercase tracking-wider mb-3 opacity-90">Total Spent</p>
-                      <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-green-900 mb-2 tracking-tight leading-tight">
+                <Card className="p-6">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1 overflow-hidden">
+                      <p className="text-sm font-medium text-gray-600">Total Spent</p>
+                      <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1 break-words overflow-wrap-anywhere">
                         {formatPrice(dashboardData.stats.totalSpent, 'AMD')}
                       </p>
-                      <p className="text-xs font-medium text-green-600/80 mt-2">All completed orders</p>
                     </div>
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 lg:w-18 lg:h-18 bg-gradient-to-br from-green-500 via-emerald-500 to-green-600 rounded-2xl flex items-center justify-center shadow-xl shadow-green-500/30 flex-shrink-0 transform hover:scale-105 hover:rotate-3 transition-all duration-300">
-                      <svg className="w-7 h-7 sm:w-8 sm:h-8 text-white drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
                   </div>

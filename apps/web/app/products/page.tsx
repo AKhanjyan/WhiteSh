@@ -70,10 +70,15 @@ async function getProducts(
 
     const queryString = new URLSearchParams(params).toString();
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
-    if (!baseUrl) throw new Error("❌ NEXT_PUBLIC_APP_URL is missing.");
+    // Fallback chain: NEXT_PUBLIC_APP_URL -> VERCEL_URL -> localhost (for local dev)
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
-    const res = await fetch(`${baseUrl}/api/v1/products?${queryString}`, {
+    const targetUrl = `${baseUrl}/api/v1/products?${queryString}`;
+    console.log("🌐 [PRODUCTS] Fetch products", { targetUrl, baseUrl });
+
+    const res = await fetch(targetUrl, {
       cache: "no-store"
     });
 

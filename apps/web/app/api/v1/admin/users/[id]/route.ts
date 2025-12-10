@@ -40,3 +40,41 @@ export async function PUT(
   }
 }
 
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const user = await authenticateToken(req);
+    if (!user || !requireAdmin(user)) {
+      return NextResponse.json(
+        {
+          type: "https://api.shop.am/problems/forbidden",
+          title: "Forbidden",
+          status: 403,
+          detail: "Admin access required",
+          instance: req.url,
+        },
+        { status: 403 }
+      );
+    }
+
+    const { id } = await params;
+    await adminService.deleteUser(id);
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error("❌ [ADMIN] Delete user error:", error);
+    return NextResponse.json(
+      {
+        type: error.type || "https://api.shop.am/problems/internal-error",
+        title: error.title || "Internal Server Error",
+        status: error.status || 500,
+        detail: error.detail || error.message || "An error occurred",
+        instance: req.url,
+      },
+      { status: error.status || 500 }
+    );
+  }
+}
+

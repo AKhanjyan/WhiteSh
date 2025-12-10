@@ -32,13 +32,6 @@ interface ProductsResponse {
   };
 }
 
-interface Category {
-  id: string;
-  slug: string;
-  title: string;
-  parentId: string | null;
-}
-
 export default function ProductsPage() {
   const { isLoggedIn, isAdmin, isLoading } = useAuth();
   const router = useRouter();
@@ -47,14 +40,13 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const [categorySearch, setCategorySearch] = useState('');
   const [skuSearch, setSkuSearch] = useState('');
-  const [categories, setCategories] = useState<Category[]>([]);
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState<ProductsResponse['meta'] | null>(null);
   const [minPrice, setMinPrice] = useState<string>('');
   const [maxPrice, setMaxPrice] = useState<string>('');
   const [sortBy, setSortBy] = useState<string>('createdAt-desc');
-  const [brands, setBrands] = useState<Array<{ id: string; name: string; slug: string }>>([]);
-  const [showDeleteSection, setShowDeleteSection] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   useEffect(() => {
     if (!isLoading) {
@@ -65,12 +57,6 @@ export default function ProductsPage() {
     }
   }, [isLoggedIn, isAdmin, isLoading, router]);
 
-  useEffect(() => {
-    if (isLoggedIn && isAdmin) {
-      fetchCategories();
-      fetchBrands();
-    }
-  }, [isLoggedIn, isAdmin]);
 
   useEffect(() => {
     if (isLoggedIn && isAdmin) {
@@ -79,23 +65,6 @@ export default function ProductsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, isAdmin, page, search, categorySearch, skuSearch, sortBy, minPrice, maxPrice]);
 
-  const fetchCategories = async () => {
-    try {
-      const response = await apiClient.get<{ data: Category[] }>('/api/v1/admin/categories');
-      setCategories(response.data || []);
-    } catch (err) {
-      console.error('❌ [ADMIN] Error fetching categories:', err);
-    }
-  };
-
-  const fetchBrands = async () => {
-    try {
-      const response = await apiClient.get<{ data: Array<{ id: string; name: string; slug: string }> }>('/api/v1/admin/brands');
-      setBrands(response.data || []);
-    } catch (err) {
-      console.error('❌ [ADMIN] Error fetching brands:', err);
-    }
-  };
 
   const fetchProducts = async () => {
     try {
@@ -147,6 +116,44 @@ export default function ProductsPage() {
     e.preventDefault();
     setPage(1);
     fetchProducts();
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (products.length === 0) return;
+    setSelectedIds(prev => {
+      const allIds = products.map(p => p.id);
+      const hasAll = allIds.every(id => prev.has(id));
+      return hasAll ? new Set() : new Set(allIds);
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Delete ${selectedIds.size} selected products?`)) return;
+    setBulkDeleting(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const results = await Promise.allSettled(
+        ids.map(id => apiClient.delete(`/api/v1/admin/products/${id}`))
+      );
+      const failed = results.filter(r => r.status === 'rejected');
+      setSelectedIds(new Set());
+      await fetchProducts();
+      alert(`Bulk delete finished. Success: ${ids.length - failed.length}/${ids.length}`);
+    } catch (err) {
+      console.error('❌ [ADMIN] Bulk delete products error:', err);
+      alert('Failed to delete selected products');
+    } finally {
+      setBulkDeleting(false);
+    }
   };
 
   const handlePriceFilter = () => {
@@ -211,69 +218,6 @@ export default function ProductsPage() {
     }
   };
 
-  const handleDeleteCategory = async (categoryId: string, categoryTitle: string) => {
-    if (!confirm(`Are you sure you want to delete category "${categoryTitle}"? This action cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      await apiClient.delete(`/api/v1/admin/categories/${categoryId}`);
-      console.log('✅ [ADMIN] Category deleted successfully');
-      
-      // Refresh categories list
-      fetchCategories();
-      
-      alert('Category deleted successfully');
-    } catch (err: any) {
-      console.error('❌ [ADMIN] Error deleting category:', err);
-      
-      // Extract error message from ApiError response
-      let errorMessage = 'Unknown error occurred';
-      if (err.data?.detail) {
-        errorMessage = err.data.detail;
-      } else if (err.detail) {
-        errorMessage = err.detail;
-      } else if (err.message) {
-        errorMessage = err.message;
-      } else if (err.response?.data?.detail) {
-        errorMessage = err.response.data.detail;
-      }
-      
-      alert(`Error deleting category:\n\n${errorMessage}`);
-    }
-  };
-
-  const handleDeleteBrand = async (brandId: string, brandName: string) => {
-    if (!confirm(`Are you sure you want to delete brand "${brandName}"? This action cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      await apiClient.delete(`/api/v1/admin/brands/${brandId}`);
-      console.log('✅ [ADMIN] Brand deleted successfully');
-      
-      // Refresh brands list
-      fetchBrands();
-      
-      alert('Brand deleted successfully');
-    } catch (err: any) {
-      console.error('❌ [ADMIN] Error deleting brand:', err);
-      
-      // Extract error message from ApiError response
-      let errorMessage = 'Unknown error occurred';
-      if (err.data?.detail) {
-        errorMessage = err.data.detail;
-      } else if (err.detail) {
-        errorMessage = err.detail;
-      } else if (err.message) {
-        errorMessage = err.message;
-      } else if (err.response?.data?.detail) {
-        errorMessage = err.response.data.detail;
-      }
-      
-      alert(`Error deleting brand:\n\n${errorMessage}`);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -355,21 +299,16 @@ export default function ProductsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Search by Category
                   </label>
-                  <select
+                  <input
+                    type="text"
                     value={categorySearch}
                     onChange={(e) => {
                       setCategorySearch(e.target.value);
                       setPage(1);
                     }}
+                    placeholder="Enter category ID..."
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">All Categories</option>
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.title}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
                 
                 <div>
@@ -416,146 +355,6 @@ export default function ProductsPage() {
             </div>
           </Card>
 
-          {/* Analytics */}
-          <Card className="p-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Analytics</h3>
-            <div className="flex gap-3 items-end">
-              <div className="flex-1">
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Min Price (USD)
-                </label>
-                <input
-                  type="number"
-                  value={minPrice}
-                  onChange={(e) => setMinPrice(e.target.value)}
-                  placeholder="100"
-                  min="0"
-                  step="1"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Max Price (USD)
-                </label>
-                <input
-                  type="number"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(e.target.value)}
-                  placeholder="1000"
-                  min="0"
-                  step="1"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <Button
-                type="button"
-                variant="primary"
-                onClick={handlePriceFilter}
-                disabled={!minPrice && !maxPrice}
-              >
-                Apply Filter
-              </Button>
-              {(minPrice || maxPrice) && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={handleClearPriceFilter}
-                >
-                  Clear
-                </Button>
-              )}
-            </div>
-            {(minPrice || maxPrice) && (
-              <div className="mt-2 text-xs text-gray-600">
-                Filtering by price range: {minPrice || '0'} - {maxPrice || '∞'} USD
-              </div>
-            )}
-          </Card>
-
-          {/* Delete Categories and Brands Section */}
-          <Card className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-gray-900">Manage Categories & Brands</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowDeleteSection(!showDeleteSection)}
-              >
-                {showDeleteSection ? 'Hide' : 'Show'} Management
-              </Button>
-            </div>
-            
-            {showDeleteSection && (
-              <div className="space-y-6">
-                {/* Categories Section */}
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-3">Categories</h4>
-                  {categories.length === 0 ? (
-                    <p className="text-sm text-gray-500 py-2">No categories found</p>
-                  ) : (
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {categories.map((category) => (
-                        <div
-                          key={category.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                        >
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{category.title}</div>
-                            <div className="text-xs text-gray-500">{category.slug}</div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteCategory(category.id, category.title)}
-                            className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                          >
-                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Delete
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Brands Section */}
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-3">Brands</h4>
-                  {brands.length === 0 ? (
-                    <p className="text-sm text-gray-500 py-2">No brands found</p>
-                  ) : (
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {brands.map((brand) => (
-                        <div
-                          key={brand.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                        >
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{brand.name}</div>
-                            <div className="text-xs text-gray-500">{brand.slug}</div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteBrand(brand.id, brand.name)}
-                            className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                          >
-                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Delete
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </Card>
         </div>
 
         {/* Products Table */}
@@ -575,6 +374,14 @@ export default function ProductsPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
+                      <th className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          aria-label="Select all products"
+                          checked={products.length > 0 && products.every(p => selectedIds.has(p.id))}
+                          onChange={toggleSelectAll}
+                        />
+                      </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Product
                       </th>
@@ -598,6 +405,14 @@ export default function ProductsPage() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {products.map((product) => (
                       <tr key={product.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-4">
+                          <input
+                            type="checkbox"
+                            aria-label={`Select product ${product.title}`}
+                            checked={selectedIds.has(product.id)}
+                            onChange={() => toggleSelect(product.id)}
+                          />
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             {product.image && (
@@ -622,13 +437,13 @@ export default function ProductsPage() {
                                   className="px-3 py-1 bg-gray-100 rounded-lg text-sm"
                                 >
                                   <span className="font-medium text-gray-900">{colorStock.color}:</span>
-                                  <span className="ml-1 text-gray-600">{colorStock.stock} հատ</span>
+                                  <span className="ml-1 text-gray-600">{colorStock.stock} pcs</span>
                                 </div>
                               ))}
                             </div>
                           ) : (
                             <span className="text-sm text-gray-500">
-                              {product.stock > 0 ? `${product.stock} հատ` : '0 հատ'}
+                              {product.stock > 0 ? `${product.stock} pcs` : '0 pcs'}
                             </span>
                           )}
                         </td>
@@ -713,6 +528,16 @@ export default function ProductsPage() {
                   </div>
                 </div>
               )}
+              <div className="px-6 py-4 flex items-center justify-between border-t border-gray-200">
+                <div className="text-sm text-gray-700">Selected {selectedIds.size} products</div>
+                <Button
+                  variant="outline"
+                  onClick={handleBulkDelete}
+                  disabled={selectedIds.size === 0 || bulkDeleting}
+                >
+                  {bulkDeleting ? 'Deleting...' : 'Delete selected'}
+                </Button>
+              </div>
             </>
           )}
         </Card>

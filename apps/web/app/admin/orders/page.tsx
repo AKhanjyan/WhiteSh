@@ -42,6 +42,8 @@ export default function OrdersPage() {
   const [meta, setMeta] = useState<OrdersResponse['meta'] | null>(null);
   const [updatingStatuses, setUpdatingStatuses] = useState<Set<string>>(new Set());
   const [updateMessage, setUpdateMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   // Initialize filters from URL params on mount
   useEffect(() => {
@@ -113,6 +115,48 @@ export default function OrdersPage() {
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (orders.length === 0) return;
+    setSelectedIds(prev => {
+      const allIds = orders.map(o => o.id);
+      const hasAll = allIds.every(id => prev.has(id));
+      return hasAll ? new Set() : new Set(allIds);
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Delete ${selectedIds.size} selected orders?`)) return;
+    setBulkDeleting(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const results = await Promise.allSettled(
+        ids.map(id => apiClient.delete(`/api/v1/admin/orders/${id}`))
+      );
+      const failed = results.filter(r => r.status === 'rejected');
+      setSelectedIds(new Set());
+      await fetchOrders();
+      alert(`Bulk delete finished. Success: ${ids.length - failed.length}/${ids.length}`);
+    } catch (err) {
+      console.error('❌ [ADMIN] Bulk delete orders error:', err);
+      alert('Failed to delete selected orders');
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -270,6 +314,14 @@ export default function OrdersPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
+                      <th className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          aria-label="Select all orders"
+                          checked={orders.length > 0 && orders.every(o => selectedIds.has(o.id))}
+                          onChange={toggleSelectAll}
+                        />
+                      </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Order #
                       </th>
@@ -296,6 +348,14 @@ export default function OrdersPage() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {orders.map((order) => (
                       <tr key={order.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-4">
+                          <input
+                            type="checkbox"
+                            aria-label={`Select order ${order.number}`}
+                            checked={selectedIds.has(order.id)}
+                            onChange={() => toggleSelect(order.id)}
+                          />
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">{order.number}</div>
                         </td>
@@ -374,6 +434,18 @@ export default function OrdersPage() {
                   </div>
                 </div>
               )}
+              <div className="mt-4 flex items-center justify-between">
+                <div className="text-sm text-gray-700">
+                  Selected {selectedIds.size} orders
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleBulkDelete}
+                  disabled={selectedIds.size === 0 || bulkDeleting}
+                >
+                  {bulkDeleting ? 'Deleting...' : 'Delete selected'}
+                </Button>
+              </div>
             </>
           )}
         </Card>

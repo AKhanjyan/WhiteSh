@@ -35,6 +35,8 @@ export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState<UsersResponse['meta'] | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   useEffect(() => {
     if (!isLoading) {
@@ -79,6 +81,44 @@ export default function UsersPage() {
     e.preventDefault();
     setPage(1);
     fetchUsers();
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (users.length === 0) return;
+    setSelectedIds(prev => {
+      const allIds = users.map(u => u.id);
+      const hasAll = allIds.every(id => prev.has(id));
+      return hasAll ? new Set() : new Set(allIds);
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Delete ${selectedIds.size} selected users?`)) return;
+    setBulkDeleting(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const results = await Promise.allSettled(
+        ids.map(id => apiClient.delete(`/api/v1/admin/users/${id}`))
+      );
+      const failed = results.filter(r => r.status === 'rejected');
+      setSelectedIds(new Set());
+      await fetchUsers();
+      alert(`Bulk delete finished. Success: ${ids.length - failed.length}/${ids.length}`);
+    } catch (err) {
+      console.error('❌ [ADMIN] Bulk delete users error:', err);
+      alert('Failed to delete selected users');
+    } finally {
+      setBulkDeleting(false);
+    }
   };
 
   const handleToggleBlocked = async (userId: string, currentStatus: boolean, userName: string) => {
@@ -168,6 +208,14 @@ export default function UsersPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
+                      <th className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          aria-label="Select all users"
+                          checked={users.length > 0 && users.every(u => selectedIds.has(u.id))}
+                          onChange={toggleSelectAll}
+                        />
+                      </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         User
                       </th>
@@ -188,6 +236,14 @@ export default function UsersPage() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {users.map((user) => (
                       <tr key={user.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-4">
+                          <input
+                            type="checkbox"
+                            aria-label={`Select user ${user.email}`}
+                            checked={selectedIds.has(user.id)}
+                            onChange={() => toggleSelect(user.id)}
+                          />
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
                             {user.firstName} {user.lastName}
@@ -264,6 +320,16 @@ export default function UsersPage() {
                   </div>
                 </div>
               )}
+              <div className="mt-4 flex items-center justify-between">
+                <div className="text-sm text-gray-700">Selected {selectedIds.size} users</div>
+                <Button
+                  variant="outline"
+                  onClick={handleBulkDelete}
+                  disabled={selectedIds.size === 0 || bulkDeleting}
+                >
+                  {bulkDeleting ? 'Deleting...' : 'Delete selected'}
+                </Button>
+              </div>
             </>
           )}
         </Card>
