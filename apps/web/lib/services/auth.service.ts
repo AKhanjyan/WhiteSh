@@ -67,6 +67,11 @@ class AuthService {
         ],
         deletedAt: null,
       },
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+      },
     });
 
     if (existingUser) {
@@ -100,6 +105,16 @@ class AuthService {
           lastName: data.lastName || null,
           locale: "en",
           roles: ["customer"],
+        },
+        select: {
+          id: true,
+          email: true,
+          phone: true,
+          firstName: true,
+          lastName: true,
+          roles: true,
+          passwordHash: true,
+          blocked: true,
         },
       });
       console.log("✅ [AUTH] User created successfully");
@@ -185,6 +200,16 @@ class AuthService {
           ...(data.phone ? [{ phone: data.phone }] : []),
         ],
         deletedAt: null,
+      },
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+        firstName: true,
+        lastName: true,
+        roles: true,
+        blocked: true,
+        passwordHash: true,
       },
     });
 

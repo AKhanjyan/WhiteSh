@@ -184,6 +184,9 @@
 - ✅ Header-ում լեզվի/արժույթի selector-ի UI-ը բերվեց ներկայացված նկարի ոճին, ավելացվեց `[Header][LangCurrency]` logging ավելի պարզ debug-ի համար
 - ✅ Added Refund Policy and Delivery Terms pages and linked them in the footer
 - ✅ Added Home featured products subheading "Discover our top picks"
+- ✅ Header icons restyled: removed rounded backgrounds, enlarged search icon to match reference, simplified hover states
+- ✅ Featured Products tabs updated to New/Bestseller/Featured with bestseller logic from sales; admin product form now includes Featured checkbox to control homepage tab
+- ✅ Added password reset fields to Prisma User model to fix missing column error (`passwordResetToken`, `passwordResetExpires`) — run Prisma migration/db push to apply
 
 ## Ամփոփում
 

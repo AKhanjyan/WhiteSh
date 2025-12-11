@@ -29,7 +29,7 @@ interface ProductsResponse {
   };
 }
 
-type FilterType = 'new-offers' | 'new' | 'featured' | 'bestseller';
+type FilterType = 'new' | 'featured' | 'bestseller';
 
 interface Tab {
   id: FilterType;
@@ -38,10 +38,9 @@ interface Tab {
 }
 
 const tabs: Tab[] = [
-  { id: 'new-offers', label: 'NEW OFFERS', filter: null },
   { id: 'new', label: 'NEW', filter: 'new' },
+  { id: 'bestseller', label: 'BESTSELLER', filter: 'bestseller' },
   { id: 'featured', label: 'FEATURED', filter: 'featured' },
-  { id: 'bestseller', label: 'TOP SELLERS', filter: 'bestseller' },
 ];
 
 const PRODUCTS_PER_PAGE = 10;
@@ -54,7 +53,7 @@ const MOBILE_GRID_LAYOUT =
  * Similar to the reference design with underlined active tab
  */
 export function FeaturedProductsTabs() {
-  const [activeTab, setActiveTab] = useState<FilterType>('new-offers');
+  const [activeTab, setActiveTab] = useState<FilterType>('new');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,7 +74,7 @@ export function FeaturedProductsTabs() {
         lang: language,
       };
 
-      // Add filter if provided (new-offers doesn't have filter, shows all)
+      // Add filter if provided
       if (filter) {
         params.filter = filter;
       }
@@ -105,9 +104,9 @@ export function FeaturedProductsTabs() {
     fetchProducts(tab?.filter || null);
   };
 
-  // Load products on mount
+  // Load products on mount (default "NEW")
   useEffect(() => {
-    fetchProducts(null); // Load all products for "NEW OFFERS"
+    fetchProducts('new');
     console.log('🧱 [FeaturedProductsTabs] Mobile grid locked to 2 columns on phones');
   }, []);
 
@@ -119,8 +118,7 @@ export function FeaturedProductsTabs() {
           Featured Products
         </h2>
         <p className="mt-3 mb-8 text-base text-gray-600 text-center">
-         
-          Selected products: updated every week
+          Three quick picks: New arrivals, Bestsellers, and Featured picks
         </p>
 
         {/* Tabs Navigation */}
@@ -134,7 +132,7 @@ export function FeaturedProductsTabs() {
                 className={`
                   relative px-4 py-2 text-sm font-medium transition-colors duration-200
                   ${isActive 
-                    ? 'text-red-600' 
+                    ? 'text-blue-600' 
                     : 'text-gray-600 hover:text-gray-900'
                   }
                 `}
@@ -145,7 +143,7 @@ export function FeaturedProductsTabs() {
                 {/* Active indicator - underline */}
                 {isActive && (
                   <span 
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-red-600"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
                     aria-hidden="true"
                   />
                 )}

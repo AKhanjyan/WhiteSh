@@ -82,6 +82,7 @@ class ProductsService {
     } = filters;
 
     const skip = (page - 1) * limit;
+    const bestsellerProductIds: string[] = [];
 
     // Build where clause
     const where: Prisma.ProductWhereInput = {
@@ -165,13 +166,68 @@ class ProductsService {
       }
     }
 
-    // Add filter for new, featured
+    // Add filter for new, featured, bestseller
     if (filter === "new") {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       where.createdAt = { gte: thirtyDaysAgo };
     } else if (filter === "featured") {
       where.featured = true;
+    } else if (filter === "bestseller") {
+      type BestsellerVariant = { variantId: string | null; _sum: { quantity: number | null } };
+      const bestsellerVariants: BestsellerVariant[] = await db.orderItem.groupBy({
+        by: ["variantId"],
+        _sum: { quantity: true },
+        where: {
+          variantId: {
+            not: null,
+          },
+        },
+        orderBy: {
+          _sum: {
+            quantity: "desc",
+          },
+        },
+        take: 200,
+      });
+
+      const variantIds = bestsellerVariants
+        .map((item) => item.variantId)
+        .filter((id): id is string => Boolean(id));
+
+      if (variantIds.length > 0) {
+        const variantProductMap = await db.productVariant.findMany({
+          where: { id: { in: variantIds } },
+          select: { id: true, productId: true },
+        });
+
+        const variantToProduct = new Map<string, string>();
+        variantProductMap.forEach(({ id, productId }: { id: string; productId: string }) => {
+          variantToProduct.set(id, productId);
+        });
+
+        const productSales = new Map<string, number>();
+        bestsellerVariants.forEach((item: BestsellerVariant) => {
+          const variantId = item.variantId;
+          if (!variantId) return;
+          const productId = variantToProduct.get(variantId);
+          if (!productId) return;
+          const qty = item._sum?.quantity || 0;
+          productSales.set(productId, (productSales.get(productId) || 0) + qty);
+        });
+
+        bestsellerProductIds.push(
+          ...Array.from(productSales.entries())
+            .sort((a, b) => (b[1] || 0) - (a[1] || 0))
+            .map(([productId]) => productId)
+        );
+
+        if (bestsellerProductIds.length > 0) {
+          where.id = {
+            in: bestsellerProductIds,
+          };
+        }
+      }
     }
 
     // Get products
@@ -317,7 +373,15 @@ class ProductsService {
     }
 
     // Sort
-    if (sort === "price") {
+    if (filter === "bestseller" && bestsellerProductIds.length > 0) {
+      const rank = new Map<string, number>();
+      bestsellerProductIds.forEach((id, index) => rank.set(id, index));
+      products.sort((a: ProductWithRelations, b: ProductWithRelations) => {
+        const aRank = rank.get(a.id) ?? Number.MAX_SAFE_INTEGER;
+        const bRank = rank.get(b.id) ?? Number.MAX_SAFE_INTEGER;
+        return aRank - bRank;
+      });
+    } else if (sort === "price") {
       products.sort((a: ProductWithRelations, b: ProductWithRelations) => {
         const aVariants = Array.isArray(a.variants) ? a.variants : [];
         const bVariants = Array.isArray(b.variants) ? b.variants : [];

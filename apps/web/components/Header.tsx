@@ -50,28 +50,28 @@ const ChevronDownIcon = () => (
 );
 
 const ProfileIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="10" cy="7" r="3" stroke="currentColor" strokeWidth="1.8" fill="none" />
+ <svg width="19" height="19" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="10" cy="7" r="3.2" stroke="currentColor" strokeWidth="1.8" fill="none" />
     <path d="M5 17C5 14.5 7.5 12.5 10 12.5C12.5 12.5 15 14.5 15 17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
   </svg>
 );
 
 const WishlistIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg width="19" height="19" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M10 17L8.55 15.7C4.4 12.2 2 10.1 2 7.5C2 5.4 3.4 4 5.5 4C6.8 4 8.1 4.6 9 5.5C9.9 4.6 11.2 4 12.5 4C14.6 4 16 5.4 16 7.5C16 10.1 13.6 12.2 9.45 15.7L10 17Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
   </svg>
 );
 
 const CartIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg width="19" height="19" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M3 3H5L5.5 5M7 13H15L18 5H5.5M7 13L5.5 5M7 13L5.5 15.5M7 13H15M15 13C14.4 13 13.9 13.4 13.8 14M15 13C15.6 13 16.1 13.4 16.2 14M5.5 15.5H16.5M5.5 15.5C5.2 15.5 5 15.7 5 16C5 16.3 5.2 16.5 5.5 16.5H16.5C16.8 16.5 17 16.3 17 16C17 15.7 16.8 15.5 16.5 15.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
 const SearchIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="9" cy="9" r="6" stroke="currentColor" strokeWidth="1.8" fill="none" />
-    <path d="M14 14L17 17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="10" cy="10" r="6.5" stroke="currentColor" strokeWidth="1.8" fill="none" />
+    <path d="M15.5 15.5L19 19" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
   </svg>
 );
 
@@ -767,7 +767,7 @@ export function Header() {
                 setShowSearchModal(!showSearchModal);
                 setShowCurrency(false);
               }}
-              className="w-10 h-10 rounded-full bg-white border-2 border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-md transition-all duration-200 relative group"
+              className="w-11 h-11 flex items-center justify-center text-gray-700 hover:text-gray-900 transition-colors duration-150"
               aria-label="Search"
             >
               <SearchIcon />
@@ -780,7 +780,7 @@ export function Header() {
                   <>
                     <button
                       onClick={() => setShowUserMenu(!showUserMenu)}
-                      className="w-10 h-10 rounded-full bg-white border-2 border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-md transition-all duration-200 group"
+                      className="w-11 h-11 flex items-center justify-center text-gray-700 hover:text-gray-900 transition-colors duration-150 group"
                     >
                       <ProfileIcon />
                     </button>
@@ -821,28 +821,28 @@ export function Header() {
                     )}
                   </>
                 ) : (
-                  <Link href="/login" className="w-10 h-10 rounded-full bg-white border-2 border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-md transition-all duration-200 group">
+                  <Link href="/login" className="w-11 h-11 flex items-center justify-center text-gray-700 hover:text-gray-900 transition-colors duration-150 group">
                     <ProfileIcon />
                   </Link>
                 )}
               </div>
 
               {/* Compare */}
-              <Link href="/compare" className="w-10 h-10 rounded-full bg-white border-2 border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-md transition-all duration-200 relative group">
+              <Link href="/compare" className="w-11 h-11 flex items-center justify-center text-gray-700 hover:text-gray-900 transition-colors duration-150 relative group">
                 <BadgeIcon icon={<CompareIcon size={18} />} badge={compareCount} />
               </Link>
 
               {/* Wishlist */}
-              <Link href="/wishlist" className="w-10 h-10 rounded-full bg-white border-2 border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-md transition-all duration-200 relative group">
+              <Link href="/wishlist" className="w-11 h-11 flex items-center justify-center text-gray-700 hover:text-gray-900 transition-colors duration-150 relative group">
                 <BadgeIcon icon={<WishlistIcon />} badge={wishlistCount} />
               </Link>
 
               {/* Shopping Cart */}
-              <Link href="/cart" className="flex items-center gap-2.5 group">
-                <div className="w-10 h-10 rounded-full bg-white border-2 border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-md transition-all duration-200 relative">
+              <Link href="/cart" className="flex items-center gap-[0.hpx] group">
+                <div className="w-11 h-11 flex items-center justify-center text-gray-700 hover:text-gray-900 transition-colors duration-150 relative">
                   <BadgeIcon icon={<CartIcon />} badge={cartCount} />
                 </div>
-                <span className="text-gray-800 font-bold text-sm hidden sm:block min-w-[3.5rem] group-hover:text-gray-900 transition-colors">
+                <span className="text-gray-800 font-bold text-sm hidden sm:block min-w-[3.25rem] group-hover:text-gray-900 transition-colors">
                   {formatPrice(cartTotal, selectedCurrency)}
                 </span>
               </Link>

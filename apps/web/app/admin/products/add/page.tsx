@@ -118,6 +118,7 @@ interface ProductData {
   primaryCategoryId?: string | null;
   categoryIds?: string[];
   published: boolean;
+    featured?: boolean;
   media?: string[];
   labels?: ProductLabel[];
   variants?: Array<{
@@ -153,6 +154,7 @@ function AddProductPageContent() {
     primaryCategoryId: '',
     categoryIds: [] as string[],
     published: false,
+    featured: false,
     imageUrls: [] as string[],
     featuredImageIndex: 0,
     variants: [] as Variant[],
@@ -311,6 +313,7 @@ function AddProductPageContent() {
             primaryCategoryId: product.primaryCategoryId || '',
             categoryIds: product.categoryIds || [],
             published: product.published || false,
+            featured: product.featured || false,
             imageUrls: normalizedMedia,
             featuredImageIndex:
               featuredIndexFromApi >= 0 && featuredIndexFromApi < normalizedMedia.length
@@ -1189,6 +1192,7 @@ function AddProductPageContent() {
         primaryCategoryId: finalPrimaryCategoryId || undefined,
         categoryIds: formData.categoryIds.length > 0 ? formData.categoryIds : undefined,
         published: formData.published,
+      featured: formData.featured,
         locale: 'en',
         variants: variants,
       };
@@ -2332,15 +2336,29 @@ function AddProductPageContent() {
 
             {/* Publishing */}
             <div>
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={formData.published}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, published: e.target.checked }))}
-                  className="mr-2"
-                />
-                <span className="text-sm font-medium text-gray-700">Publish immediately</span>
-              </label>
+              <div className="space-y-2">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.published}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, published: e.target.checked }))}
+                    className="mr-2"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Publish immediately</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.featured}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, featured: e.target.checked }))}
+                    className="mr-2"
+                  />
+                  <span className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                    <span aria-hidden="true">⭐</span>
+                    Mark as Featured (for homepage tab)
+                  </span>
+                </label>
+              </div>
             </div>
 
             {/* Actions */}

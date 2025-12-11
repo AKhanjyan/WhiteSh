@@ -15,6 +15,8 @@ model User {
   email         String?   @unique
   phone         String?   @unique
   passwordHash  String?
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
   firstName     String?
   lastName      String?
   emailVerified Boolean   @default(false)

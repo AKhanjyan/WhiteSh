@@ -643,6 +643,7 @@ class AdminService {
     primaryCategoryId?: string;
     categoryIds?: string[];
     published: boolean;
+    featured?: boolean;
     locale: string;
     media?: any[];
     labels?: Array<{
@@ -722,6 +723,7 @@ class AdminService {
         categoryIds: data.categoryIds || [],
         media: data.media || [],
         published: data.published,
+        featured: data.featured ?? false,
         publishedAt: data.published ? new Date() : undefined,
         translations: {
           create: {
@@ -774,6 +776,7 @@ class AdminService {
       primaryCategoryId?: string;
       categoryIds?: string[];
       published?: boolean;
+      featured?: boolean;
       locale?: string;
       media?: any[];
       labels?: Array<{
@@ -823,6 +826,9 @@ class AdminService {
         if (data.published && !existing.publishedAt) {
           updateData.publishedAt = new Date();
         }
+      }
+      if (data.featured !== undefined) {
+        updateData.featured = data.featured;
       }
 
       // Update translation
