@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type MouseEvent } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { apiClient } from '../lib/api-client';
 import { formatPrice, getStoredCurrency } from '../lib/currency';
 import { getStoredLanguage } from '../lib/language';
+import { useAuth } from '../lib/auth/AuthContext';
 
 interface RelatedProduct {
   id: string;
@@ -40,12 +42,32 @@ interface RelatedProductsProps {
 }
 
 /**
- * RelatedProducts component - displays 4 products from the same category
+ * Cart Icon Component
+ */
+const CartIcon = (
+  <svg width="24" height="24" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path 
+      d="M3 3H5L5.5 5M7 13H15L18 5H5.5M7 13L5.5 5M7 13L5.5 15.5M7 13H15M15 13C14.4 13 13.9 13.4 13.8 14M15 13C15.6 13 16.1 13.4 16.2 14M5.5 15.5H16.5M5.5 15.5C5.2 15.5 5 15.7 5 16C5 16.3 5.2 16.5 5.5 16.5H16.5C16.8 16.5 17 16.3 17 16C17 15.7 16.8 15.5 16.5 15.5" 
+      stroke="currentColor" 
+      strokeWidth="1.8" 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+    />
+  </svg>
+);
+
+/**
+ * RelatedProducts component - displays products from the same category in a carousel
  * Shown at the bottom of the single product page
  */
 export function RelatedProducts({ categorySlug, currentProductId }: RelatedProductsProps) {
+  const router = useRouter();
+  const { isLoggedIn } = useAuth();
   const [products, setProducts] = useState<RelatedProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [visibleCards, setVisibleCards] = useState(4);
+  const [addingToCart, setAddingToCart] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchRelatedProducts = async () => {
@@ -93,6 +115,133 @@ export function RelatedProducts({ categorySlug, currentProductId }: RelatedProdu
     fetchRelatedProducts();
   }, [categorySlug, currentProductId]);
 
+  // Determine visible cards based on screen size
+  useEffect(() => {
+    const updateVisibleCards = () => {
+      const width = window.innerWidth;
+      if (width < 640) {
+        setVisibleCards(1); // mobile
+      } else if (width < 1024) {
+        setVisibleCards(2); // tablet
+      } else if (width < 1280) {
+        setVisibleCards(3); // desktop
+      } else {
+        setVisibleCards(4); // large desktop
+      }
+    };
+
+    updateVisibleCards();
+    window.addEventListener('resize', updateVisibleCards);
+    return () => window.removeEventListener('resize', updateVisibleCards);
+  }, []);
+
+  // Auto-rotate carousel
+  useEffect(() => {
+    if (products.length <= visibleCards) return; // Don't auto-rotate if all products are visible
+    
+    const interval = setInterval(() => {
+      setCurrentIndex((prevIndex) => {
+        const maxIndex = Math.max(0, products.length - visibleCards);
+        return prevIndex >= maxIndex ? 0 : prevIndex + 1;
+      });
+    }, 5000); // Change every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [products.length, visibleCards]);
+
+  // Adjust currentIndex when visibleCards changes
+  useEffect(() => {
+    const maxIndex = Math.max(0, products.length - visibleCards);
+    setCurrentIndex((prevIndex) => {
+      if (prevIndex > maxIndex) {
+        return maxIndex;
+      }
+      return prevIndex;
+    });
+  }, [visibleCards, products.length]);
+
+  const maxIndex = Math.max(0, products.length - visibleCards);
+
+  const goToPrevious = () => {
+    setCurrentIndex((prevIndex) => {
+      return prevIndex === 0 ? maxIndex : prevIndex - 1;
+    });
+  };
+
+  const goToNext = () => {
+    setCurrentIndex((prevIndex) => {
+      return prevIndex >= maxIndex ? 0 : prevIndex + 1;
+    });
+  };
+
+  /**
+   * Handle adding product to cart
+   */
+  const handleAddToCart = async (e: MouseEvent, product: RelatedProduct) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!product.inStock) {
+      return;
+    }
+
+    if (!isLoggedIn) {
+      router.push(`/login?redirect=/products/${product.slug}`);
+      return;
+    }
+
+    setAddingToCart(prev => new Set(prev).add(product.id));
+
+    try {
+      // Get product details to get variant ID
+      interface ProductDetails {
+        id: string;
+        slug: string;
+        variants?: Array<{
+          id: string;
+          sku: string;
+          price: number;
+          stock: number;
+          available: boolean;
+        }>;
+      }
+
+      const encodedSlug = encodeURIComponent(product.slug.trim());
+      const productDetails = await apiClient.get<ProductDetails>(`/api/v1/products/${encodedSlug}`);
+
+      if (!productDetails.variants || productDetails.variants.length === 0) {
+        alert('No variants available');
+        return;
+      }
+
+      const variantId = productDetails.variants[0].id;
+      
+      await apiClient.post(
+        '/api/v1/cart/items',
+        {
+          productId: product.id,
+          variantId: variantId,
+          quantity: 1,
+        }
+      );
+
+      // Trigger cart update event
+      window.dispatchEvent(new Event('cart-updated'));
+    } catch (error: any) {
+      console.error('[RelatedProducts] Error adding to cart:', error);
+      if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+        router.push(`/login?redirect=/products/${product.slug}`);
+      } else {
+        alert('Failed to add product to cart. Please try again.');
+      }
+    } finally {
+      setAddingToCart(prev => {
+        const next = new Set(prev);
+        next.delete(product.id);
+        return next;
+      });
+    }
+  };
 
   const currency = getStoredCurrency();
 
@@ -119,75 +268,181 @@ export function RelatedProducts({ categorySlug, currentProductId }: RelatedProdu
             <p className="text-gray-500 text-lg">No related products found</p>
           </div>
         ) : (
-          // Products Grid - 4 columns on desktop, responsive on mobile
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {products.map((product) => {
-              const imageUrl = product.image || 'https://via.placeholder.com/400/CCCCCC/FFFFFF?text=No+Image';
-              // Get category name from product categories
-              const categoryName = product.categories && product.categories.length > 0 
-                ? product.categories.map(c => c.title).join(', ')
-                : product.brand?.name || 'Product';
-              
-              return (
-                <Link
-                  key={product.id}
-                  href={`/products/${product.slug}`}
-                  className="group"
-                >
-                  <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                    {/* Product Image */}
-                    <div className="relative aspect-square bg-gray-100 overflow-hidden">
-                      <Image
-                        src={imageUrl}
-                        alt={product.title}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                        unoptimized
-                      />
-                    </div>
+          // Products Carousel
+          <div className="relative">
+            {/* Carousel Container */}
+            <div className="relative overflow-hidden">
+              <div
+                className="flex transition-transform duration-500 ease-in-out"
+                style={{
+                  transform: `translateX(-${currentIndex * (100 / visibleCards)}%)`,
+                }}
+              >
+                {products.map((product) => {
+                  const imageUrl = product.image || 'https://via.placeholder.com/400/CCCCCC/FFFFFF?text=No+Image';
+                  // Get category name from product categories
+                  const categoryName = product.categories && product.categories.length > 0 
+                    ? product.categories.map(c => c.title).join(', ')
+                    : product.brand?.name || 'Product';
+                  
+                  return (
+                    <div
+                      key={product.id}
+                      className="flex-shrink-0 px-3"
+                      style={{ width: `${100 / visibleCards}%` }}
+                    >
+                      <div className="group relative">
+                        <Link
+                          href={`/products/${product.slug}`}
+                          className="block"
+                        >
+                          <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                            {/* Product Image */}
+                            <div className="relative aspect-square bg-gray-100 overflow-hidden">
+                              <Image
+                                src={imageUrl}
+                                alt={product.title}
+                                fill
+                                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                                unoptimized
+                              />
+                            </div>
 
-                    {/* Product Info */}
-                    <div className="p-4">
-                      {/* Title */}
-                      <h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2 group-hover:text-gray-600 transition-colors">
-                        {product.title}
-                      </h3>
+                            {/* Product Info */}
+                            <div className="p-4">
+                              {/* Title */}
+                              <h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2 group-hover:text-gray-600 transition-colors">
+                                {product.title}
+                              </h3>
 
-                      {/* Category */}
-                      <p className="text-xs text-gray-500 mb-3">
-                        {categoryName}
-                      </p>
+                              {/* Category */}
+                              <p className="text-xs text-gray-500 mb-3">
+                                {categoryName}
+                              </p>
 
-                      {/* Price */}
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold text-gray-900">
-                            {formatPrice(product.price, currency)}
-                          </span>
-                          {product.discountPercent && product.discountPercent > 0 && (
-                            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
-                              -{product.discountPercent}%
-                            </span>
+                              {/* Price */}
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-lg font-bold text-gray-900">
+                                    {formatPrice(product.price, currency)}
+                                  </span>
+                                  {product.discountPercent && product.discountPercent > 0 && (
+                                    <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                                      -{product.discountPercent}%
+                                    </span>
+                                  )}
+                                </div>
+                                {(product.originalPrice && product.originalPrice > product.price) || 
+                                 (product.compareAtPrice && product.compareAtPrice > product.price) ? (
+                                  <span className="text-sm text-gray-500 line-through">
+                                    {formatPrice(
+                                      (product.originalPrice && product.originalPrice > product.price) 
+                                        ? product.originalPrice 
+                                        : (product.compareAtPrice || 0),
+                                      currency
+                                    )}
+                                  </span>
+                                ) : null}
+                              </div>
+                            </div>
+                          </div>
+                        </Link>
+
+                        {/* Cart Icon Button */}
+                        <button
+                          onClick={(e) => handleAddToCart(e, product)}
+                          disabled={!product.inStock || addingToCart.has(product.id)}
+                          className="absolute bottom-3 right-3 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 bg-white/90 backdrop-blur-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed z-10 group/cart"
+                          title={product.inStock ? 'Add to cart' : 'Out of stock'}
+                          aria-label={product.inStock ? 'Add to cart' : 'Out of stock'}
+                        >
+                          {addingToCart.has(product.id) ? (
+                            <svg className="animate-spin h-5 w-5 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          ) : (
+                            <div className={`transition-colors duration-200 ${product.inStock ? 'text-gray-600 group-hover/cart:text-green-600' : 'text-gray-400'}`}>
+                              {CartIcon}
+                            </div>
                           )}
-                        </div>
-                        {(product.originalPrice && product.originalPrice > product.price) || 
-                         (product.compareAtPrice && product.compareAtPrice > product.price) ? (
-                          <span className="text-sm text-gray-500 line-through">
-                            {formatPrice(
-                              (product.originalPrice && product.originalPrice > product.price) 
-                                ? product.originalPrice 
-                                : (product.compareAtPrice || 0),
-                              currency
-                            )}
-                          </span>
-                        ) : null}
+                        </button>
                       </div>
                     </div>
-                  </div>
-                </Link>
-              );
-            })}
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Navigation Arrows - Only show if there are more products than visible */}
+            {products.length > visibleCards && (
+              <>
+                <button
+                  onClick={goToPrevious}
+                  className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-4 bg-white/90 hover:bg-white text-gray-900 p-2 rounded-full shadow-lg transition-all z-20 cursor-pointer hover:scale-110"
+                  aria-label="Previous products"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
+                </button>
+
+                <button
+                  onClick={goToNext}
+                  className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-4 bg-white/90 hover:bg-white text-gray-900 p-2 rounded-full shadow-lg transition-all z-20 cursor-pointer hover:scale-110"
+                  aria-label="Next products"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </button>
+              </>
+            )}
+
+            {/* Dots Indicator - Only show if there are more products than visible */}
+            {products.length > visibleCards && (
+              <div className="flex justify-center gap-2 mt-6">
+                {Array.from({ length: Math.ceil(products.length / visibleCards) }).map((_, index) => {
+                  const startIndex = index * visibleCards;
+                  const endIndex = Math.min(startIndex + visibleCards, products.length);
+                  const isActive = currentIndex >= startIndex && currentIndex < endIndex;
+                  
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentIndex(startIndex)}
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        isActive
+                          ? 'bg-gray-900 w-8'
+                          : 'bg-gray-300 hover:bg-gray-400 w-2'
+                      }`}
+                      aria-label={`Go to slide ${index + 1}`}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
