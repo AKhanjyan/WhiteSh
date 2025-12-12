@@ -71,6 +71,7 @@ export function RelatedProducts({ categorySlug, currentProductId }: RelatedProdu
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+  const [hasMoved, setHasMoved] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -183,10 +184,10 @@ export function RelatedProducts({ categorySlug, currentProductId }: RelatedProdu
    */
   const handleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
     if (!carouselRef.current) return;
+    setHasMoved(false);
     setIsDragging(true);
     setStartX(e.pageX - carouselRef.current.offsetLeft);
     setScrollLeft(currentIndex);
-    e.preventDefault();
   };
 
   /**
@@ -194,20 +195,35 @@ export function RelatedProducts({ categorySlug, currentProductId }: RelatedProdu
    */
   const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
     if (!isDragging || !carouselRef.current) return;
-    e.preventDefault();
     const x = e.pageX - carouselRef.current.offsetLeft;
-    const walk = (x - startX) * 2; // Scroll speed multiplier
-    const cardWidth = 100 / visibleCards;
-    const newIndex = Math.round((scrollLeft - walk / (carouselRef.current.offsetWidth / 100)) / cardWidth);
-    const clampedIndex = Math.max(0, Math.min(maxIndex, newIndex));
-    setCurrentIndex(clampedIndex);
+    const deltaX = Math.abs(x - startX);
+    
+    // Only consider it dragging if mouse moved more than 5px
+    if (deltaX > 5) {
+      setHasMoved(true);
+      e.preventDefault();
+      const walk = (x - startX) * 2; // Scroll speed multiplier
+      const cardWidth = 100 / visibleCards;
+      const newIndex = Math.round((scrollLeft - walk / (carouselRef.current.offsetWidth / 100)) / cardWidth);
+      const clampedIndex = Math.max(0, Math.min(maxIndex, newIndex));
+      setCurrentIndex(clampedIndex);
+    }
   };
 
   /**
    * Handle mouse up/leave to stop dragging
    */
   const handleMouseUp = () => {
+    const wasDragging = isDragging;
+    const didMove = hasMoved;
     setIsDragging(false);
+    // Reset hasMoved after a short delay to allow click events to process
+    // Only reset if we were actually dragging
+    if (wasDragging && didMove) {
+      setTimeout(() => setHasMoved(false), 150);
+    } else {
+      setHasMoved(false);
+    }
   };
 
   /**
@@ -215,6 +231,7 @@ export function RelatedProducts({ categorySlug, currentProductId }: RelatedProdu
    */
   const handleTouchStart = (e: TouchEvent<HTMLDivElement>) => {
     if (!carouselRef.current) return;
+    setHasMoved(false);
     setIsDragging(true);
     setStartX(e.touches[0].pageX - carouselRef.current.offsetLeft);
     setScrollLeft(currentIndex);
@@ -226,18 +243,33 @@ export function RelatedProducts({ categorySlug, currentProductId }: RelatedProdu
   const handleTouchMove = (e: TouchEvent<HTMLDivElement>) => {
     if (!isDragging || !carouselRef.current) return;
     const x = e.touches[0].pageX - carouselRef.current.offsetLeft;
-    const walk = (x - startX) * 2;
-    const cardWidth = 100 / visibleCards;
-    const newIndex = Math.round((scrollLeft - walk / (carouselRef.current.offsetWidth / 100)) / cardWidth);
-    const clampedIndex = Math.max(0, Math.min(maxIndex, newIndex));
-    setCurrentIndex(clampedIndex);
+    const deltaX = Math.abs(x - startX);
+    
+    // Only consider it dragging if touch moved more than 5px
+    if (deltaX > 5) {
+      setHasMoved(true);
+      const walk = (x - startX) * 2;
+      const cardWidth = 100 / visibleCards;
+      const newIndex = Math.round((scrollLeft - walk / (carouselRef.current.offsetWidth / 100)) / cardWidth);
+      const clampedIndex = Math.max(0, Math.min(maxIndex, newIndex));
+      setCurrentIndex(clampedIndex);
+    }
   };
 
   /**
    * Handle touch end to stop dragging
    */
   const handleTouchEnd = () => {
+    const wasDragging = isDragging;
+    const didMove = hasMoved;
     setIsDragging(false);
+    // Reset hasMoved after a short delay to allow click events to process
+    // Only reset if we were actually dragging
+    if (wasDragging && didMove) {
+      setTimeout(() => setHasMoved(false), 150);
+    } else {
+      setHasMoved(false);
+    }
   };
 
   /**
@@ -366,7 +398,6 @@ export function RelatedProducts({ categorySlug, currentProductId }: RelatedProdu
                 className="flex"
                 style={{
                   transform: `translateX(-${currentIndex * (100 / visibleCards)}%)`,
-                  pointerEvents: isDragging ? 'none' : 'auto',
                   transition: isDragging ? 'none' : 'transform 0.5s ease-in-out',
                 }}
               >
@@ -386,11 +417,16 @@ export function RelatedProducts({ categorySlug, currentProductId }: RelatedProdu
                       <div className="group relative">
                         <Link
                           href={`/products/${product.slug}`}
-                          className="block"
+                          className="block cursor-pointer"
                           onClick={(e) => {
-                            if (isDragging) {
+                            // Prevent navigation only if we actually dragged (moved more than threshold)
+                            if (hasMoved) {
                               e.preventDefault();
+                              e.stopPropagation();
+                              return;
                             }
+                            // Allow navigation - Link will handle it
+                            console.log('[RelatedProducts] Navigating to product:', product.slug);
                           }}
                         >
                           <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
@@ -450,7 +486,7 @@ export function RelatedProducts({ categorySlug, currentProductId }: RelatedProdu
                         <button
                           onClick={(e) => handleAddToCart(e, product)}
                           disabled={!product.inStock || addingToCart.has(product.id)}
-                          className="absolute bottom-3 right-3 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 bg-white/90 backdrop-blur-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed z-10 group/cart"
+                          className="absolute bottom-3 right-3 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 bg-white/90 backdrop-blur-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed z-20 group/cart"
                           title={product.inStock ? 'Add to cart' : 'Out of stock'}
                           aria-label={product.inStock ? 'Add to cart' : 'Out of stock'}
                         >
