@@ -37,6 +37,7 @@ export default function UsersPage() {
   const [meta, setMeta] = useState<UsersResponse['meta'] | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'customer'>('all');
 
   useEffect(() => {
     if (!isLoading) {
@@ -50,13 +51,14 @@ export default function UsersPage() {
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('👥 [ADMIN] Fetching users...', { page, search });
+      console.log('👥 [ADMIN] Fetching users...', { page, search, roleFilter });
       
       const response = await apiClient.get<UsersResponse>('/api/v1/admin/users', {
         params: {
           page: page.toString(),
           limit: '20',
           search: search || '',
+          role: roleFilter === 'all' ? '' : roleFilter,
         },
       });
 
@@ -68,14 +70,14 @@ export default function UsersPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search]);
+  }, [page, search, roleFilter]);
 
   useEffect(() => {
     if (isLoggedIn && isAdmin) {
       fetchUsers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoggedIn, isAdmin, page, search]);
+  }, [isLoggedIn, isAdmin, page, search, roleFilter]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,10 +94,21 @@ export default function UsersPage() {
   };
 
   const toggleSelectAll = () => {
-    if (users.length === 0) return;
-    setSelectedIds(prev => {
-      const allIds = users.map(u => u.id);
-      const hasAll = allIds.every(id => prev.has(id));
+    // Ընտրում ենք միայն այն օգտատերերին, որոնք տեսանելի են ընթացիկ ֆիլտրով
+    const visibleUsers =
+      roleFilter === 'all'
+        ? users
+        : users.filter((u) =>
+            roleFilter === 'admin'
+              ? u.roles?.includes('admin')
+              : u.roles?.includes('customer')
+          );
+
+    if (visibleUsers.length === 0) return;
+
+    setSelectedIds((prev) => {
+      const allIds = visibleUsers.map((u) => u.id);
+      const hasAll = allIds.every((id) => prev.has(id));
       return hasAll ? new Set() : new Set(allIds);
     });
   };
@@ -159,6 +172,16 @@ export default function UsersPage() {
     return null;
   }
 
+  // Տեսանելի օգտատերերի filter Admin / Customer ֆիլտրով
+  const filteredUsers =
+    roleFilter === 'all'
+      ? users
+      : users.filter((user) =>
+          roleFilter === 'admin'
+            ? user.roles?.includes('admin')
+            : user.roles?.includes('customer')
+        );
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -177,17 +200,73 @@ export default function UsersPage() {
 
         {/* Search */}
         <Card className="p-4 mb-6">
-          <form onSubmit={handleSearch} className="flex gap-4">
-            <Input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by email, phone, name..."
-              className="flex-1"
-            />
-            <Button type="submit" variant="primary">
-              Search
-            </Button>
+          <form onSubmit={handleSearch} className="flex flex-col gap-4">
+            <div className="flex gap-4">
+              <Input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by email, phone, name..."
+                className="flex-1"
+              />
+              <Button type="submit" variant="primary">
+                Search
+              </Button>
+            </div>
+
+            {/* Admin / Customer filter */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                Admin / Customer
+              </span>
+              <div className="inline-flex rounded-full bg-gray-100 p-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRoleFilter('all');
+                    setPage(1);
+                    console.log('👥 [ADMIN] Role filter changed to: all');
+                  }}
+                  className={`px-3 py-1 rounded-full transition-all ${
+                    roleFilter === 'all'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRoleFilter('admin');
+                    setPage(1);
+                    console.log('👥 [ADMIN] Role filter changed to: admin');
+                  }}
+                  className={`px-3 py-1 rounded-full transition-all ${
+                    roleFilter === 'admin'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Admins
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRoleFilter('customer');
+                    setPage(1);
+                    console.log('👥 [ADMIN] Role filter changed to: customer');
+                  }}
+                  className={`px-3 py-1 rounded-full transition-all ${
+                    roleFilter === 'customer'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Customers
+                </button>
+              </div>
+            </div>
           </form>
         </Card>
 
@@ -198,7 +277,7 @@ export default function UsersPage() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
               <p className="text-gray-600">Loading users...</p>
             </div>
-          ) : users.length === 0 ? (
+          ) : filteredUsers.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-600">No users found</p>
             </div>
@@ -234,7 +313,7 @@ export default function UsersPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {users.map((user) => (
+                    {filteredUsers.map((user) => (
                       <tr key={user.id} className="hover:bg-gray-50">
                         <td className="px-4 py-4">
                           <input
