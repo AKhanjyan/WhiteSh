@@ -364,22 +364,20 @@ export default function UsersPage() {
                                 `${user.firstName} ${user.lastName}`,
                               )
                             }
-                            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border transition-all duration-200 ${
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
                               user.blocked
-                                ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
-                                : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                                ? 'bg-gray-300 focus:ring-gray-400'
+                                : 'bg-green-500 focus:ring-green-500'
                             }`}
-                            title="Click to toggle customer status"
+                            title={user.blocked ? 'Click to activate user' : 'Click to block user'}
+                            role="switch"
+                            aria-checked={!user.blocked}
                           >
                             <span
-                              className={`inline-flex h-3 w-3 rounded-full border border-current transition-transform duration-200 ${
-                                user.blocked ? 'bg-transparent' : 'bg-current'
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+                                user.blocked ? 'translate-x-1' : 'translate-x-6'
                               }`}
                             />
-                            <span>{user.blocked ? 'Blocked' : 'Active'}</span>
-                            <span className="text-[10px] text-gray-500 ml-1">
-                              (toggle)
-                            </span>
                           </button>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
