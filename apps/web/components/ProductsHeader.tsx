@@ -412,27 +412,6 @@ function ProductsHeaderContent({ total, perPage }: ProductsHeaderProps) {
                 <rect x="11" y="11" width="7" height="7" stroke="currentColor" strokeWidth="1.5" fill={viewMode === 'grid-2' ? 'currentColor' : 'none'} />
               </svg>
             </button>
-            <button
-              onClick={() => handleViewModeChange('grid-3')}
-              className={`rounded-lg p-2 transition-all ${
-                viewMode === 'grid-3'
-                  ? 'bg-gray-100 text-gray-900'
-                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
-              }`}
-              aria-label="Grid view 3x3"
-            >
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="4" cy="4" r="1.5" fill="currentColor" />
-                <circle cx="10" cy="4" r="1.5" fill="currentColor" />
-                <circle cx="16" cy="4" r="1.5" fill="currentColor" />
-                <circle cx="4" cy="10" r="1.5" fill="currentColor" />
-                <circle cx="10" cy="10" r="1.5" fill="currentColor" />
-                <circle cx="16" cy="10" r="1.5" fill="currentColor" />
-                <circle cx="4" cy="16" r="1.5" fill="currentColor" />
-                <circle cx="10" cy="16" r="1.5" fill="currentColor" />
-                <circle cx="16" cy="16" r="1.5" fill="currentColor" />
-              </svg>
-            </button>
           </div>
         </div>
       </div>
