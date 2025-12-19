@@ -33,14 +33,26 @@ interface ProductsResponse {
   };
 }
 
+interface Category {
+  id: string;
+  title: string;
+  slug: string;
+  parentId: string | null;
+  requiresSizes: boolean;
+}
+
 export default function ProductsPage() {
   const { isLoggedIn, isAdmin, isLoading } = useAuth();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [categorySearch, setCategorySearch] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesExpanded, setCategoriesExpanded] = useState(false);
   const [skuSearch, setSkuSearch] = useState('');
+  const [stockFilter, setStockFilter] = useState<'all' | 'inStock' | 'outOfStock'>('all');
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState<ProductsResponse['meta'] | null>(null);
   const [minPrice, setMinPrice] = useState<string>('');
@@ -59,13 +71,34 @@ export default function ProductsPage() {
     }
   }, [isLoggedIn, isAdmin, isLoading, router]);
 
+  // Fetch categories on mount
+  useEffect(() => {
+    if (isLoggedIn && isAdmin) {
+      fetchCategories();
+    }
+  }, [isLoggedIn, isAdmin]);
+
+  const fetchCategories = async () => {
+    try {
+      setCategoriesLoading(true);
+      console.log('📂 [ADMIN] Fetching categories...');
+      const response = await apiClient.get<{ data: Category[] }>('/api/v1/admin/categories');
+      setCategories(response.data || []);
+      console.log('✅ [ADMIN] Categories loaded:', response.data?.length || 0);
+    } catch (err: any) {
+      console.error('❌ [ADMIN] Error fetching categories:', err);
+      setCategories([]);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (isLoggedIn && isAdmin) {
       fetchProducts();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoggedIn, isAdmin, page, search, categorySearch, skuSearch, sortBy, minPrice, maxPrice]);
+  }, [isLoggedIn, isAdmin, page, search, selectedCategories, skuSearch, stockFilter, sortBy, minPrice, maxPrice]);
 
 
   const fetchProducts = async () => {
@@ -80,8 +113,9 @@ export default function ProductsPage() {
         params.search = search.trim();
       }
 
-      if (categorySearch.trim()) {
-        params.category = categorySearch.trim();
+      // Եթե ընտրված են category-ներ, ուղարկում ենք comma-separated string
+      if (selectedCategories.size > 0) {
+        params.category = Array.from(selectedCategories).join(',');
       }
 
       if (skuSearch.trim()) {
@@ -105,7 +139,28 @@ export default function ProductsPage() {
         params,
       });
       
-      setProducts(response.data || []);
+      let filteredProducts = response.data || [];
+
+      // Stock filter (client-side, քանի որ API-ն չի աջակցում stock filter-ը)
+      if (stockFilter !== 'all') {
+        filteredProducts = filteredProducts.filter(product => {
+          const getTotalStock = (p: Product) => {
+            if (p.colorStocks && p.colorStocks.length > 0) {
+              return p.colorStocks.reduce((sum, cs) => sum + (cs.stock || 0), 0);
+            }
+            return p.stock ?? 0;
+          };
+          const totalStock = getTotalStock(product);
+          if (stockFilter === 'inStock') {
+            return totalStock > 0;
+          } else if (stockFilter === 'outOfStock') {
+            return totalStock === 0;
+          }
+          return true;
+        });
+      }
+
+      setProducts(filteredProducts);
       setMeta(response.meta || null);
     } catch (err: any) {
       console.error('❌ [ADMIN] Error fetching products:', err);
@@ -448,14 +503,15 @@ export default function ProductsPage() {
                 <Button type="submit" variant="primary">
                   Search
                 </Button>
-                {(search || categorySearch || skuSearch) && (
+                {(search || selectedCategories.size > 0 || skuSearch || stockFilter !== 'all') && (
                   <Button
                     type="button"
                     variant="ghost"
                     onClick={() => {
                       setSearch('');
-                      setCategorySearch('');
+                      setSelectedCategories(new Set());
                       setSkuSearch('');
+                      setStockFilter('all');
                       setPage(1);
                     }}
                   >
@@ -464,24 +520,66 @@ export default function ProductsPage() {
                 )}
               </div>
               
-              {/* Category and SKU Search */}
+              {/* Category Filter */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setCategoriesExpanded(!categoriesExpanded)}
+                  className="flex items-center justify-between w-full text-left text-sm font-medium text-gray-700 mb-2 hover:text-gray-900 focus:outline-none"
+                >
+                  <span>Filter by Category</span>
+                  <svg
+                    className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${
+                      categoriesExpanded ? 'transform rotate-180' : ''
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {categoriesExpanded && (
+                  <>
+                    {categoriesLoading ? (
+                      <div className="text-sm text-gray-500">Loading categories...</div>
+                    ) : categories.length === 0 ? (
+                      <div className="text-sm text-gray-500">No categories available</div>
+                    ) : (
+                      <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-md p-3 bg-gray-50">
+                        <div className="space-y-2">
+                          {categories.map((category) => (
+                            <label
+                              key={category.id}
+                              className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 p-1 rounded"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedCategories.has(category.id)}
+                                onChange={(e) => {
+                                  const newSelected = new Set(selectedCategories);
+                                  if (e.target.checked) {
+                                    newSelected.add(category.id);
+                                  } else {
+                                    newSelected.delete(category.id);
+                                  }
+                                  setSelectedCategories(newSelected);
+                                  setPage(1);
+                                }}
+                                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              />
+                              <span className="text-sm text-gray-700">{category.title}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* SKU Search and Stock Filter */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Search by Category
-                  </label>
-                  <input
-                    type="text"
-                    value={categorySearch}
-                    onChange={(e) => {
-                      setCategorySearch(e.target.value);
-                      setPage(1);
-                    }}
-                    placeholder="Enter category ID..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Search by SKU
@@ -496,6 +594,24 @@ export default function ProductsPage() {
                     placeholder="Enter SKU code..."
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Filter by Stock
+                  </label>
+                  <select
+                    value={stockFilter}
+                    onChange={(e) => {
+                      setStockFilter(e.target.value as 'all' | 'inStock' | 'outOfStock');
+                      setPage(1);
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">All Products</option>
+                    <option value="inStock">In Stock</option>
+                    <option value="outOfStock">Out of Stock</option>
+                  </select>
                 </div>
               </div>
             </form>

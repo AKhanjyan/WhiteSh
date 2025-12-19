@@ -26,11 +26,14 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
+    const categoryParam = searchParams.get("category");
+    const categories = categoryParam ? categoryParam.split(',').filter(Boolean) : undefined;
+    
     const filters = {
       page: searchParams.get("page") ? parseInt(searchParams.get("page")!) : 1,
       limit: searchParams.get("limit") ? parseInt(searchParams.get("limit")!) : 20,
       search: searchParams.get("search") || undefined,
-      category: searchParams.get("category") || undefined,
+      categories: categories,
       sku: searchParams.get("sku") || undefined,
       minPrice: searchParams.get("minPrice") ? parseFloat(searchParams.get("minPrice")!) : undefined,
       maxPrice: searchParams.get("maxPrice") ? parseFloat(searchParams.get("maxPrice")!) : undefined,

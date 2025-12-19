@@ -596,6 +596,7 @@ class AdminService {
     limit?: number;
     search?: string;
     category?: string;
+    categories?: string[];
     sku?: string;
     minPrice?: number;
     maxPrice?: number;
@@ -640,18 +641,28 @@ class AdminService {
       );
     }
 
-    // Category filter
-    if (filters.category) {
-      orConditions.push(
-        {
-          primaryCategoryId: filters.category,
-        },
-        {
-          categoryIds: {
-            has: filters.category,
+    // Category filter - support both single category and multiple categories
+    const categoryIds = filters.categories && filters.categories.length > 0 
+      ? filters.categories 
+      : filters.category 
+        ? [filters.category] 
+        : [];
+    
+    if (categoryIds.length > 0) {
+      const categoryConditions: any[] = [];
+      categoryIds.forEach((categoryId) => {
+        categoryConditions.push(
+          {
+            primaryCategoryId: categoryId,
           },
-        }
-      );
+          {
+            categoryIds: {
+              has: categoryId,
+            },
+          }
+        );
+      });
+      orConditions.push(...categoryConditions);
     }
 
     if (orConditions.length > 0) {
