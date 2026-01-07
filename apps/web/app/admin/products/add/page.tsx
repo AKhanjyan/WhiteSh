@@ -300,29 +300,110 @@ function AddProductPageContent() {
           let firstSku = '';
           
           (product.variants || []).forEach((variant: any, index: number) => {
+            console.log(`🔍 [ADMIN] Processing variant ${index}:`, {
+              id: variant.id,
+              sku: variant.sku,
+              price: variant.price,
+              stock: variant.stock,
+              color: variant.color,
+              size: variant.size,
+              options: variant.options,
+              imageUrl: variant.imageUrl,
+            });
+            
             // Try to get color from variant.color (old format) or from variant.options (new format)
             let color = variant.color || '';
             let size = variant.size || '';
             
             // If color is empty, try to get from options
             if (!color && variant.options && Array.isArray(variant.options)) {
-              const colorOption = variant.options.find((opt: any) => 
-                opt.attributeKey === 'color' || opt.key === 'color' || opt.attribute === 'color'
-              );
+              console.log(`🔍 [ADMIN] Searching for color in options:`, variant.options);
+              const colorOption = variant.options.find((opt: any) => {
+                const matches = opt.attributeKey === 'color' || opt.key === 'color' || opt.attribute === 'color';
+                if (matches) {
+                  console.log(`✅ [ADMIN] Found color option:`, opt);
+                }
+                return matches;
+              });
               if (colorOption) {
                 color = colorOption.value || '';
+                console.log(`✅ [ADMIN] Found color from options:`, color);
+              } else {
+                // Try to find by attributeValue relation
+                const colorOptionByValue = variant.options.find((opt: any) => {
+                  // Check if option has attributeValue with color attribute
+                  if (opt.attributeValue) {
+                    const attrValue = opt.attributeValue;
+                    // Check if this attributeValue belongs to color attribute
+                    return attrValue.attribute?.key === 'color' || attrValue.attributeKey === 'color';
+                  }
+                  return false;
+                });
+                if (colorOptionByValue && colorOptionByValue.attributeValue) {
+                  color = colorOptionByValue.attributeValue.value || '';
+                  console.log(`✅ [ADMIN] Found color from attributeValue:`, color);
+                }
               }
             }
             
             // If size is empty, try to get from options
             if (!size && variant.options && Array.isArray(variant.options)) {
-              const sizeOption = variant.options.find((opt: any) => 
-                opt.attributeKey === 'size' || opt.key === 'size' || opt.attribute === 'size'
-              );
+              console.log(`🔍 [ADMIN] Searching for size in options:`, variant.options);
+              const sizeOption = variant.options.find((opt: any) => {
+                const matches = opt.attributeKey === 'size' || opt.key === 'size' || opt.attribute === 'size';
+                if (matches) {
+                  console.log(`✅ [ADMIN] Found size option:`, opt);
+                }
+                return matches;
+              });
               if (sizeOption) {
                 size = sizeOption.value || '';
+                console.log(`✅ [ADMIN] Found size from options:`, size);
+              } else {
+                // Try to find by attributeValue relation
+                const sizeOptionByValue = variant.options.find((opt: any) => {
+                  // Check if option has attributeValue with size attribute
+                  if (opt.attributeValue) {
+                    const attrValue = opt.attributeValue;
+                    // Check if this attributeValue belongs to size attribute
+                    return attrValue.attribute?.key === 'size' || attrValue.attributeKey === 'size';
+                  }
+                  return false;
+                });
+                if (sizeOptionByValue && sizeOptionByValue.attributeValue) {
+                  size = sizeOptionByValue.attributeValue.value || '';
+                  console.log(`✅ [ADMIN] Found size from attributeValue:`, size);
+                }
               }
             }
+            
+            // If still no color/size, try to extract from SKU as fallback
+            if (!color && variant.sku) {
+              const skuParts = variant.sku.split('-');
+              // Common patterns: "15-blue-17.2", "15-red-18"
+              if (skuParts.length >= 2) {
+                const possibleColor = skuParts[1]; // "blue", "red"
+                // Check if this looks like a color
+                if (possibleColor && possibleColor.length > 0 && !/^\d+$/.test(possibleColor)) {
+                  color = possibleColor;
+                  console.log(`✅ [ADMIN] Extracted color from SKU:`, color);
+                }
+              }
+            }
+            
+            if (!size && variant.sku) {
+              const skuParts = variant.sku.split('-');
+              // Common patterns: "15-blue-17.2", "15-red-18"
+              if (skuParts.length >= 3) {
+                const possibleSize = skuParts[2]; // "17.2", "18", "19"
+                if (possibleSize) {
+                  size = possibleSize;
+                  console.log(`✅ [ADMIN] Extracted size from SKU:`, size);
+                }
+              }
+            }
+            
+            console.log(`📊 [ADMIN] Extracted from variant ${index}:`, { color, size });
             
             // Convert stock to string, handling 0 correctly
             const stockValue = variant.stock !== undefined && variant.stock !== null 
@@ -330,7 +411,79 @@ function AddProductPageContent() {
               : '';
             
             // Collect colors with their images, sizes, and stocks
-            if (color) {
+            // If no color, create a default color entry for variants without colors
+            if (!color) {
+              // Create a default color entry for variants without colors
+              const defaultColor = 'default';
+              const defaultColorLabel = 'Default';
+              
+              if (!colorDataMap.has(defaultColor)) {
+                const colorData: ColorData = {
+                  colorValue: defaultColor,
+                  colorLabel: defaultColorLabel,
+                  images: smartSplitUrls(variant.imageUrl),
+                  stock: size ? '' : stockValue,
+                  price: variant.price !== undefined && variant.price !== null ? String(variant.price) : '',
+                  compareAtPrice: variant.compareAtPrice !== undefined && variant.compareAtPrice !== null ? String(variant.compareAtPrice) : '',
+                  sizes: [],
+                  sizeStocks: {},
+                  sizePrices: {},
+                  sizeCompareAtPrices: {},
+                  sizeLabels: {},
+                  isFeatured: !!variant.isFeatured,
+                };
+                
+                if (size) {
+                  colorData.sizes = [size];
+                  colorData.sizeStocks = { [size]: stockValue };
+                  if (variant.price !== undefined && variant.price !== null) {
+                    colorData.sizePrices![size] = String(variant.price);
+                  }
+                  if (variant.compareAtPrice !== undefined && variant.compareAtPrice !== null) {
+                    colorData.sizeCompareAtPrices![size] = String(variant.compareAtPrice);
+                  }
+                }
+                
+                colorDataMap.set(defaultColor, colorData);
+              } else {
+                const existingColorData = colorDataMap.get(defaultColor)!;
+                if (variant.imageUrl) {
+                  const imageUrls = smartSplitUrls(variant.imageUrl);
+                  imageUrls.forEach((url: string) => {
+                    const exists = existingColorData.images.some(existingUrl => {
+                      if (url.startsWith('data:') || existingUrl.startsWith('data:')) {
+                        return url === existingUrl;
+                      }
+                      const n1 = existingUrl.startsWith('/') ? existingUrl : `/${existingUrl}`;
+                      const n2 = url.startsWith('/') ? url : `/${url}`;
+                      return n1 === n2 || existingUrl === url;
+                    });
+                    if (url && !exists) {
+                      existingColorData.images.push(url);
+                    }
+                  });
+                }
+                
+                if (size) {
+                  if (!existingColorData.sizes.includes(size)) {
+                    existingColorData.sizes.push(size);
+                  }
+                  existingColorData.sizeStocks[size] = stockValue;
+                  if (!existingColorData.sizePrices) existingColorData.sizePrices = {};
+                  if (variant.price !== undefined && variant.price !== null) {
+                    existingColorData.sizePrices[size] = String(variant.price);
+                  }
+                  if (!existingColorData.sizeCompareAtPrices) existingColorData.sizeCompareAtPrices = {};
+                  if (variant.compareAtPrice !== undefined && variant.compareAtPrice !== null) {
+                    existingColorData.sizeCompareAtPrices[size] = String(variant.compareAtPrice);
+                  }
+                } else {
+                  const currentStockNum = parseInt(existingColorData.stock) || 0;
+                  const variantStockNum = parseInt(stockValue) || 0;
+                  existingColorData.stock = String(currentStockNum + variantStockNum);
+                }
+              }
+            } else if (color) {
               if (!colorDataMap.has(color)) {
                 // Get color label from attributes or use color value
                 const colorAttribute = attributes.find((attr) => attr.key === 'color');
@@ -348,6 +501,8 @@ function AddProductPageContent() {
                   compareAtPrice: variant.compareAtPrice !== undefined && variant.compareAtPrice !== null ? String(variant.compareAtPrice) : '',
                   sizes: [],
                   sizeStocks: {},
+                  sizePrices: {},
+                  sizeCompareAtPrices: {},
                   sizeLabels: {},
                   isFeatured: !!variant.isFeatured,
                 };
@@ -356,6 +511,14 @@ function AddProductPageContent() {
                 if (size) {
                   colorData.sizes = [size];
                   colorData.sizeStocks = { [size]: stockValue };
+                  // Store size-specific price
+                  if (variant.price !== undefined && variant.price !== null) {
+                    colorData.sizePrices![size] = String(variant.price);
+                  }
+                  // Store size-specific compareAtPrice
+                  if (variant.compareAtPrice !== undefined && variant.compareAtPrice !== null) {
+                    colorData.sizeCompareAtPrices![size] = String(variant.compareAtPrice);
+                  }
                   // Get size label if it's a custom size (not from attributes)
                   if (variant.sizeLabel) {
                     colorData.sizeLabels = { [size]: variant.sizeLabel };
@@ -394,6 +557,16 @@ function AddProductPageContent() {
                   }
                   // Update stock for this size
                   existingColorData.sizeStocks[size] = stockValue;
+                  // Store size-specific price
+                  if (!existingColorData.sizePrices) existingColorData.sizePrices = {};
+                  if (variant.price !== undefined && variant.price !== null) {
+                    existingColorData.sizePrices[size] = String(variant.price);
+                  }
+                  // Store size-specific compareAtPrice
+                  if (!existingColorData.sizeCompareAtPrices) existingColorData.sizeCompareAtPrices = {};
+                  if (variant.compareAtPrice !== undefined && variant.compareAtPrice !== null) {
+                    existingColorData.sizeCompareAtPrices[size] = String(variant.compareAtPrice);
+                  }
                   // Update size label if available
                   if (variant.sizeLabel) {
                     if (!existingColorData.sizeLabels) existingColorData.sizeLabels = {};
@@ -487,6 +660,138 @@ function AddProductPageContent() {
               color: label.color || null,
             })),
           });
+          
+          // Populate Matrix Builder with existing variant data
+          console.log('🔍 [ADMIN] Preparing Matrix Builder data:', {
+            hasColors: !!mergedVariant.colors,
+            colorsCount: mergedVariant.colors?.length || 0,
+            mergedVariant: mergedVariant,
+          });
+          
+          if (mergedVariant.colors && mergedVariant.colors.length > 0) {
+            const colors: string[] = [];
+            const sizes: string[] = [];
+            const matrixData: Record<string, {
+              price: string;
+              compareAtPrice: string;
+              stock: string;
+              sku: string;
+              image: string | null;
+            }> = {};
+            
+            mergedVariant.colors.forEach((colorData) => {
+              console.log('🎨 [ADMIN] Processing colorData:', {
+                colorValue: colorData.colorValue,
+                colorLabel: colorData.colorLabel,
+                sizes: colorData.sizes,
+                sizeStocks: colorData.sizeStocks,
+                sizePrices: colorData.sizePrices,
+                price: colorData.price,
+              });
+              // Add color to selected colors
+              if (colorData.colorValue && !colors.includes(colorData.colorValue)) {
+                colors.push(colorData.colorValue);
+              }
+              
+              // Add sizes to selected sizes
+              if (colorData.sizes && colorData.sizes.length > 0) {
+                colorData.sizes.forEach((size) => {
+                  if (!sizes.includes(size)) {
+                    sizes.push(size);
+                  }
+                });
+              }
+              
+              // Populate matrix data
+              if (colorData.sizes && colorData.sizes.length > 0) {
+                // Color with sizes - create matrix cells for each size
+                colorData.sizes.forEach((size) => {
+                  const key = `${colorData.colorValue}-${size}`;
+                  const sizePrice = colorData.sizePrices?.[size] || colorData.price || '';
+                  const sizeCompareAtPrice = colorData.sizeCompareAtPrices?.[size] || colorData.compareAtPrice || '';
+                  const sizeStock = colorData.sizeStocks?.[size] || '';
+                  const sizeSku = colorData.sizeLabels?.[size] || '';
+                  
+                  matrixData[key] = {
+                    price: sizePrice,
+                    compareAtPrice: sizeCompareAtPrice,
+                    stock: sizeStock,
+                    sku: sizeSku,
+                    image: colorData.images && colorData.images.length > 0 ? colorData.images[0] : null,
+                  };
+                });
+                
+                // Store color-level image (for color row)
+                if (colorData.images && colorData.images.length > 0) {
+                  matrixData[colorData.colorValue] = {
+                    price: colorData.price || '',
+                    compareAtPrice: colorData.compareAtPrice || '',
+                    stock: colorData.stock || '',
+                    sku: mergedVariant.sku || '',
+                    image: colorData.images[0],
+                  };
+                }
+              } else {
+                // Color without sizes
+                const key = colorData.colorValue;
+                matrixData[key] = {
+                  price: colorData.price || '',
+                  compareAtPrice: colorData.compareAtPrice || '',
+                  stock: colorData.stock || '',
+                  sku: mergedVariant.sku || '',
+                  image: colorData.images && colorData.images.length > 0 ? colorData.images[0] : null,
+                };
+              }
+            });
+            
+            // If only sizes (no colors)
+            if (colors.length === 0 && sizes.length > 0) {
+              // This case is handled differently - sizes without colors
+              mergedVariant.colors.forEach((colorData) => {
+                if (colorData.sizes && colorData.sizes.length > 0) {
+                  colorData.sizes.forEach((size) => {
+                    const sizePrice = colorData.sizePrices?.[size] || colorData.price || '';
+                    const sizeCompareAtPrice = colorData.sizeCompareAtPrices?.[size] || colorData.compareAtPrice || '';
+                    const sizeStock = colorData.sizeStocks?.[size] || '';
+                    const sizeSku = colorData.sizeLabels?.[size] || '';
+                    
+                    matrixData[size] = {
+                      price: sizePrice,
+                      compareAtPrice: sizeCompareAtPrice,
+                      stock: sizeStock,
+                      sku: sizeSku,
+                      image: colorData.images && colorData.images.length > 0 ? colorData.images[0] : null,
+                    };
+                  });
+                }
+              });
+            }
+            
+            // Update Matrix Builder state
+            console.log('📝 [ADMIN] Setting Matrix Builder state:', {
+              colors,
+              sizes,
+              matrixDataKeys: Object.keys(matrixData),
+              matrixData,
+            });
+            
+            setMatrixSelectedColors(colors);
+            setMatrixSelectedSizes(sizes);
+            setMatrixVariants(matrixData);
+            setUseMatrixBuilder(true);
+            
+            console.log('✅ [ADMIN] Matrix Builder populated with existing variant data:', {
+              colors: colors.length,
+              sizes: sizes.length,
+              matrixCells: Object.keys(matrixData).length,
+            });
+          } else {
+            console.warn('⚠️ [ADMIN] No colors found in mergedVariant, Matrix Builder will not be populated:', {
+              mergedVariant,
+              hasColors: !!mergedVariant.colors,
+              colorsLength: mergedVariant.colors?.length || 0,
+            });
+          }
           
           // Reset new brand/category fields when loading existing product
           setUseNewBrand(false);
